@@ -1,51 +1,65 @@
-// API Placeholder functions for the backend requests
-
-// Example usage:
-// import { fetchPendingBalance } from '@/lib/api'
-
-// All these functions should be wired up to actual backend endpoints using trpc or fetch.
-// The placeholders log exactly the expected behavior.
+import { apiClient } from './apiClient';
 
 export async function fetchHousemates() {
-  // return fetch('/api/housemates').then(res => res.json())
-  return [
-    { id: '1', name: 'Alice', avatar: 'https://i.pravatar.cc/150?u=alice', email: 'email@email.com' },
-    { id: '2', name: 'Bob', avatar: 'https://i.pravatar.cc/150?u=bob', email: 'email@email.com' },
-    { id: '3', name: 'Charlie', avatar: 'https://i.pravatar.cc/150?u=charlie', email: 'email@email.com' },
-  ];
+  const res = await apiClient.get('/house/my-house');
+  return res.data.members;
 }
 
 export async function fetchHouseBalance() {
-  // return fetch('/api/house/balance').then(res => res.json())
-  return { total: 12500.00 }; // Placeholder
+  const res = await apiClient.get('/house/my-house');
+  return { total: res.data.balance };
+}
+
+// Relies on resume
+export async function getDashboardResume() {
+  const res = await apiClient.get('/house/resume');
+  return res.data;
 }
 
 export async function fetchPendingTotal() {
-  // return fetch('/api/transactions/pending').then(res => res.json())
-  return { total: 450.00 }; // Placeholder
+  try {
+    const res = await apiClient.get('/house/resume');
+    return { total: res.data.pendingExpenses?.amount || 0 };
+  } catch (e) {
+    return { total: 0 };
+  }
 }
 
 export async function fetchPaidTotal() {
-  // return fetch('/api/transactions/paid').then(res => res.json())
-  return { total: 3200.00 }; // Placeholder
+  try {
+    const res = await apiClient.get('/house/resume');
+    return { total: res.data.monthPaidExpenses?.amount || 0 };
+  } catch (e) {
+    return { total: 0 };
+  }
 }
 
 export async function fetchUpcomingDueDates() {
-  // return fetch('/api/transactions/upcoming').then(res => res.json())
-  return [
-    { id: '1', title: 'Energia Elétrica', date: '2026-04-10', amount: 150.00 },
-    { id: '2', title: 'Internet', date: '2026-04-15', amount: 120.00 },
-  ];
+  try {
+    const res = await apiClient.get('/house/resume');
+    return res.data.nextWeekExpenses || [];
+  } catch (e) {
+    return [];
+  }
 }
 
-export async function leaveHouse(houseId: string, userId: string) {
-  // return fetch(`/api/house/${houseId}/leave`, { method: 'POST', body: JSON.stringify({ userId }) })
-  console.log('User left the house');
+export async function leaveHouse() {
+  await apiClient.delete('/house/leave');
   return true;
 }
 
 export async function addExpense(expenseData: any) {
-  // return fetch('/api/expenses', { method: 'POST', body: JSON.stringify(expenseData) })
-  console.log('Expense added', expenseData);
-  return { success: true };
+  const res = await apiClient.post('/expenses', expenseData);
+  return res.data;
+}
+
+export async function removeHouseMember(userId: string) {
+  const res = await apiClient.delete(`/house/remove-member?userId=${userId}`);
+  return res.data;
+}
+
+// Adjust balance
+export async function updateHouseBalance(valueToAdd: number, valueToSubtract: number = 0) {
+    const res = await apiClient.patch(`/house/balance?valueToAdd=${valueToAdd}&valueToSubtract=${valueToSubtract}`);
+    return res.data;
 }

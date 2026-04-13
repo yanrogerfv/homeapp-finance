@@ -16,6 +16,9 @@ import * as Haptics from "expo-haptics";
 export default function SignUpScreen() {
   const router = useRouter();
   const { signUp } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,7 +30,7 @@ export default function SignUpScreen() {
   };
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !displayName || !email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
@@ -50,8 +53,12 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await signUp(email, password);
-      router.replace("/(tabs)");
+      await signUp(email, password, firstName, lastName, displayName);
+      Alert.alert(
+        "Cadastro Realizado!",
+        "Por favor, verifique seu e-mail para confirmar seu cadastro.",
+        [{ text: "OK", onPress: () => router.replace("/(auth)/house-setup") }]
+      );
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Sign Up Failed", error instanceof Error ? error.message : "An error occurred");
@@ -76,6 +83,42 @@ export default function SignUpScreen() {
 
           {/* Form */}
           <View className="gap-4">
+            <View>
+              <Text className="text-sm font-semibold text-foreground mb-2">First Name</Text>
+              <TextInput
+                placeholder="John"
+                placeholderTextColor="#687076"
+                value={firstName}
+                onChangeText={setFirstName}
+                editable={!loading}
+                className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+              />
+            </View>
+
+            <View>
+              <Text className="text-sm font-semibold text-foreground mb-2">Last Name</Text>
+              <TextInput
+                placeholder="Doe"
+                placeholderTextColor="#687076"
+                value={lastName}
+                onChangeText={setLastName}
+                editable={!loading}
+                className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+              />
+            </View>
+
+            <View>
+              <Text className="text-sm font-semibold text-foreground mb-2">Display Name</Text>
+              <TextInput
+                placeholder="Johnny"
+                placeholderTextColor="#687076"
+                value={displayName}
+                onChangeText={setDisplayName}
+                editable={!loading}
+                className="bg-surface border border-border rounded-lg px-4 py-3 text-foreground"
+              />
+            </View>
+
             <View>
               <Text className="text-sm font-semibold text-foreground mb-2">Email</Text>
               <TextInput

@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as SecureStore from "expo-secure-store";
 import * as LocalAuthentication from "expo-local-authentication";
-import bcryptjs from "bcryptjs";
+import { apiClient, getSecureToken, setSecureToken, removeSecureToken } from "@/lib/apiClient";
 
 export interface User {
   id: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  role?: string;
   biometricEnabled: boolean;
 }
 
@@ -23,12 +26,13 @@ export type AuthAction =
   | { type: "SIGN_IN"; payload: User }
   | { type: "SIGN_OUT" }
   | { type: "SET_BIOMETRIC_AVAILABLE"; payload: boolean }
-  | { type: "RESTORE_FAILED" };
+  | { type: "RESTORE_FAILED" }
+  | { type: "UPDATE_USER"; payload: User };
 
 interface AuthContextType {
   state: AuthState;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithBiometric: () => Promise<void>;
   enableBiometric: (password: string) => Promise<void>;
@@ -78,6 +82,11 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         ...state,
         isLoading: false,
       };
+    case "UPDATE_USER":
+      return {
+        ...state,
+        user: action.payload,
+      };
     default:
       return state;
   }
@@ -86,7 +95,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Check biometric availability on mount
   useEffect(() => {
     const checkBiometric = async () => {
       try {
@@ -104,16 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkBiometric();
   }, []);
 
-  // Restore token on app launch
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const userJson = await AsyncStorage.getItem("user");
-        if (userJson) {
-          const user = JSON.parse(userJson);
-          const biometricEnabled = await SecureStore.getItemAsync(
-            "biometric_enabled"
-          );
+        const token = await getSecureToken("user_token");
+        if (token) {
+          const res = await apiClient.get('/user/me');
+          const user: User = res.data;
+          
+          const biometricEnabled = await getSecureToken("biometric_enabled");
+
           dispatch({
             type: "RESTORE_TOKEN",
             payload: {
@@ -126,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Error restoring token:", error);
+        await removeSecureToken("user_token");
         dispatch({ type: "RESTORE_FAILED" });
       }
     };
@@ -137,71 +146,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     state,
     signIn: async (email: string, password: string) => {
       try {
-        // Get stored user data
-        const userJson = await AsyncStorage.getItem("user");
-        if (!userJson) {
-          throw new Error("User not found");
-        }
-
-        const userData = JSON.parse(userJson);
-        const passwordHash = await SecureStore.getItemAsync("password_hash");
-
-        if (!passwordHash) {
-          throw new Error("Password not set");
-        }
-
-        // Verify password
-        const isPasswordValid = await bcryptjs.compare(password, passwordHash);
-        if (!isPasswordValid) {
-          throw new Error("Invalid password");
-        }
-
-        const user: User = {
-          id: userData.id,
-          email: userData.email,
-          biometricEnabled: userData.biometricEnabled || false,
-        };
+        const res = await apiClient.post('/public/auth/login', { email, password });
+        const { access_token } = res.data;
+        
+        await setSecureToken("user_token", access_token);
+        
+        // Fetch User Info
+        const userRes = await apiClient.get('/user/me');
+        const user: User = userRes.data;
 
         dispatch({ type: "SIGN_IN", payload: user });
-      } catch (error) {
-        throw error;
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Invalid credentials");
       }
     },
 
-    signUp: async (email: string, password: string) => {
+    signUp: async (email: string, password: string, firstName: string, lastName: string, displayName: string) => {
       try {
-        // Check if user already exists
-        const existingUser = await AsyncStorage.getItem("user");
-        if (existingUser) {
-          throw new Error("User already exists");
-        }
-
-        // Hash password
-        const salt = await bcryptjs.genSalt(10);
-        const passwordHash = await bcryptjs.hash(password, salt);
-
-        // Create user
-        const user: User = {
-          id: Math.random().toString(36).substr(2, 9),
+        await apiClient.post('/public/auth/register', {
+          firstName,
+          lastName,
+          displayName,
           email,
-          biometricEnabled: false,
-        };
-
-        // Store user and password hash
-        await AsyncStorage.setItem("user", JSON.stringify(user));
-        await SecureStore.setItemAsync("password_hash", passwordHash);
-        await SecureStore.setItemAsync("biometric_enabled", "false");
-
-        dispatch({ type: "SIGN_IN", payload: user });
-      } catch (error) {
-        throw error;
+          password
+        });
+        
+        // Auto sign-in after registration
+        await authContext.signIn(email, password);
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Registration failed");
       }
     },
 
     signOut: async () => {
       try {
-        await AsyncStorage.removeItem("user");
-        await SecureStore.deleteItemAsync("biometric_enabled");
+        await removeSecureToken("user_token");
+        await removeSecureToken("biometric_enabled");
         dispatch({ type: "SIGN_OUT" });
       } catch (error) {
         console.error("Error signing out:", error);
@@ -216,79 +196,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (result.success) {
-          const userJson = await AsyncStorage.getItem("user");
-          if (userJson) {
-            const user = JSON.parse(userJson);
+          const token = await getSecureToken("user_token");
+          if (token) {
+            const res = await apiClient.get('/user/me');
+            const user: User = res.data;
             dispatch({ type: "SIGN_IN", payload: user });
+          } else {
+            throw new Error("No token found. Please login normally first.");
           }
         } else {
           throw new Error("Biometric authentication failed");
         }
-      } catch (error) {
-        throw error;
+      } catch (error: any) {
+        throw new Error(error.message || "Biometric authentication failed");
       }
     },
 
     enableBiometric: async (password: string) => {
-      try {
-        // Verify password first
-        const passwordHash = await SecureStore.getItemAsync("password_hash");
-        if (!passwordHash) {
-          throw new Error("Password not set");
+      // Validate password by doing a dummy login or verifying?
+      // Since backend doesn't have an explicit verify password endpoint, we could try logging in again
+      if (state.user?.email) {
+        try {
+          await apiClient.post('/public/auth/login', { email: state.user.email, password });
+          await apiClient.patch('/user/biometric/status?isEnabled=true');
+          await setSecureToken("biometric_enabled", "true");
+          
+          if (state.user) {
+            dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: true } });
+          }
+        } catch(e: any) {
+            throw new Error("Invalid password");
         }
-
-        const isPasswordValid = await bcryptjs.compare(password, passwordHash);
-        if (!isPasswordValid) {
-          throw new Error("Invalid password");
-        }
-
-        // Enable biometric
-        await SecureStore.setItemAsync("biometric_enabled", "true");
-
-        if (state.user) {
-          const updatedUser = { ...state.user, biometricEnabled: true };
-          await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-          dispatch({ type: "SIGN_IN", payload: updatedUser });
-        }
-      } catch (error) {
-        throw error;
+      } else {
+          throw new Error("User not found");
       }
     },
 
     disableBiometric: async (password: string) => {
-      try {
-        // Verify password first
-        const passwordHash = await SecureStore.getItemAsync("password_hash");
-        if (!passwordHash) {
-          throw new Error("Password not set");
+      if (state.user?.email) {
+        try {
+          await apiClient.post('/public/auth/login', { email: state.user.email, password });
+          await apiClient.patch('/user/biometric/status?isEnabled=false');
+          await setSecureToken("biometric_enabled", "false");
+          
+          if (state.user) {
+            dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: false } });
+          }
+        } catch(e: any) {
+            throw new Error("Invalid password");
         }
-
-        const isPasswordValid = await bcryptjs.compare(password, passwordHash);
-        if (!isPasswordValid) {
-          throw new Error("Invalid password");
-        }
-
-        // Disable biometric
-        await SecureStore.setItemAsync("biometric_enabled", "false");
-
-        if (state.user) {
-          const updatedUser = { ...state.user, biometricEnabled: false };
-          await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-          dispatch({ type: "SIGN_IN", payload: updatedUser });
-        }
-      } catch (error) {
-        throw error;
+      } else {
+          throw new Error("User not found");
       }
     },
 
     restoreToken: async () => {
       try {
-        const userJson = await AsyncStorage.getItem("user");
-        if (userJson) {
-          const user = JSON.parse(userJson);
-          const biometricEnabled = await SecureStore.getItemAsync(
-            "biometric_enabled"
-          );
+        const token = await getSecureToken("user_token");
+        if (token) {
+          const res = await apiClient.get('/user/me');
+          const user: User = res.data;
+          const biometricEnabled = await getSecureToken("biometric_enabled");
+          
           dispatch({
             type: "RESTORE_TOKEN",
             payload: {
@@ -300,7 +269,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dispatch({ type: "RESTORE_FAILED" });
         }
       } catch (error) {
-        console.error("Error restoring token:", error);
         dispatch({ type: "RESTORE_FAILED" });
       }
     },

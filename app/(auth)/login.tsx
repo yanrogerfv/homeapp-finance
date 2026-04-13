@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
 import * as Haptics from "expo-haptics";
+import { apiClient } from "@/lib/apiClient";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -29,8 +30,18 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      // await signIn(email, password);
-      router.replace("/(tabs)");
+      await signIn(email, password);
+      
+      try {
+        await apiClient.get('/house/my-house');
+        router.replace("/(tabs)");
+      } catch (err: any) {
+        if (err.response?.status === 404 || err.response?.status === 401) {
+          router.replace("/(auth)/house-setup");
+        } else {
+          router.replace("/(tabs)");
+        }
+      }
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Login Failed", error instanceof Error ? error.message : "Invalid credentials");
