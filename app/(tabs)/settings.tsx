@@ -9,6 +9,7 @@ import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
 import { leaveHouse, removeHouseMember } from "@/lib/api";
 import { apiClient } from "@/lib/apiClient";
+import * as LocalAuthentication from "expo-local-authentication";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -45,39 +46,29 @@ export default function SettingsScreen() {
       return;
     }
 
-    Alert.prompt(
-      biometricEnabled ? "Desativar Biometria" : "Ativar Biometria",
-      "Confirme sua senha para continuar",
-      [
-        { text: "Cancelar", onPress: () => { } },
-        {
-          text: "Confirmar",
-          onPress: async (password: string | undefined) => {
-            if (!password) {
-              Alert.alert("Erro", "Senha obrigatória");
-              return;
-            }
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: biometricEnabled ? "Confirme para desativar" : "Confirme para ativar",
+        cancelLabel: "Cancelar",
+        disableDeviceFallback: false,
+      });
 
-            try {
-              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              if (biometricEnabled) {
-                await disableBiometric(password);
-                setBiometricEnabled(false);
-                Alert.alert("Sucesso", "Autenticação biométrica desativada");
-              } else {
-                await enableBiometric(password);
-                setBiometricEnabled(true);
-                Alert.alert("Sucesso", "Autenticação biométrica ativada");
-              }
-            } catch (error) {
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert("Erro", error instanceof Error ? error.message : "Falha ao atualizar");
-            }
-          },
-        },
-      ],
-      "secure-text"
-    );
+      if (result.success) {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (biometricEnabled) {
+          await disableBiometric();
+          setBiometricEnabled(false);
+          Alert.alert("Sucesso", "Autenticação biométrica desativada");
+        } else {
+          await enableBiometric();
+          setBiometricEnabled(true);
+          Alert.alert("Sucesso", "Autenticação biométrica ativada");
+        }
+      }
+    } catch (error) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro", "Falha na autenticação");
+    }
   };
 
   const handleLeaveHouse = () => {
@@ -144,7 +135,7 @@ export default function SettingsScreen() {
       className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl bg-surface border border-border`}
     >
       <View className="flex-row items-center gap-4 flex-1">
-        <View className="w-10 h-10 rounded-xl bg-primary bg-opacity-10 items-center justify-center">
+        <View className="w-10 h-10 rounded-xl border items-center justify-center">
           <MaterialIcons name={icon as any} size={22} color={colors.primary} />
         </View>
         <View className="flex-1">
@@ -239,7 +230,7 @@ export default function SettingsScreen() {
 
               <View className="p-5">
                 <Text className="text-foreground font-bold text-base mb-1">{houseDetails.name}</Text>
-                
+
                 {isOwner && (
                   <View className="mt-3 bg-primary bg-opacity-10 border border-primary p-4 rounded-xl items-center">
                     <Text className="text-muted text-xs font-bold uppercase tracking-widest mb-1">Código de Convite</Text>
@@ -254,8 +245,8 @@ export default function SettingsScreen() {
                   </Text>
                   {members.map((member: any) => (
                     <View key={member.id} className="flex-row items-center gap-3 mb-3 p-3 bg-surface border border-border rounded-xl">
-                      <View className="w-10 h-10 rounded-full bg-primary bg-opacity-20 items-center justify-center">
-                        <Text className="text-primary font-bold text-lg">{member.name?.[0] || 'M'}</Text>
+                      <View className="w-10 h-10 rounded-2xl border border-gray-600 items-center justify-center">
+                        <Text className="text-primary font-bold text-lg">{member.name?.[0] || 'Y'}</Text>
                       </View>
                       <View className="flex-1">
                         <Text className="font-bold text-foreground">
@@ -266,22 +257,22 @@ export default function SettingsScreen() {
                         )}
                       </View>
                       {isOwner && member.id !== authState.user?.id && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={async () => {
                             Alert.alert(
                               "Remover Morador",
                               "Tem certeza que deseja remover este morador da casa?",
                               [
                                 { text: "Cancelar", style: "cancel" },
-                                { 
-                                  text: "Remover", 
-                                  style: "destructive", 
+                                {
+                                  text: "Remover",
+                                  style: "destructive",
                                   onPress: async () => {
                                     try {
                                       await removeHouseMember(member.id);
                                       fetchHouse();
                                       Alert.alert("Sucesso", "Morador removido.");
-                                    } catch(e) {
+                                    } catch (e) {
                                       Alert.alert("Erro", "Não foi possível remover.");
                                     }
                                   }

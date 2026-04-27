@@ -35,8 +35,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName: string, lastName: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithBiometric: () => Promise<void>;
-  enableBiometric: (password: string) => Promise<void>;
-  disableBiometric: (password: string) => Promise<void>;
+  enableBiometric: () => Promise<void>;
+  disableBiometric: () => Promise<void>;
   restoreToken: () => Promise<void>;
 }
 
@@ -118,9 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await getSecureToken("user_token");
         if (token) {
           const res = await apiClient.get('/user/me');
-          const user: User = res.data;
+          let user: User = res.data;
           
           const biometricEnabled = await getSecureToken("biometric_enabled");
+          const savedEmail = await getSecureToken("user_email");
+          
+          if (!user.email && savedEmail) {
+            user.email = savedEmail;
+          }
 
           dispatch({
             type: "RESTORE_TOKEN",
@@ -150,10 +155,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { access_token } = res.data;
         
         await setSecureToken("user_token", access_token);
+        await setSecureToken("user_email", email);
         
         // Fetch User Info
         const userRes = await apiClient.get('/user/me');
-        const user: User = userRes.data;
+        let user: User = userRes.data;
+        if (!user.email) {
+          user.email = email;
+        }
 
         dispatch({ type: "SIGN_IN", payload: user });
       } catch (error: any) {
@@ -198,9 +207,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (result.success) {
           const token = await getSecureToken("user_token");
           if (token) {
-            const res = await apiClient.get('/user/me');
-            const user: User = res.data;
-            dispatch({ type: "SIGN_IN", payload: user });
+            if (!state.user) {
+              const res = await apiClient.get('/user/me');
+              let user: User = res.data;
+              const savedEmail = await getSecureToken("user_email");
+              if (!user.email && savedEmail) {
+                user.email = savedEmail;
+              }
+              dispatch({ type: "SIGN_IN", payload: user });
+            }
           } else {
             throw new Error("No token found. Please login normally first.");
           }
@@ -212,41 +227,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
 
-    enableBiometric: async (password: string) => {
-      // Validate password by doing a dummy login or verifying?
-      // Since backend doesn't have an explicit verify password endpoint, we could try logging in again
-      if (state.user?.email) {
-        try {
-          await apiClient.post('/public/auth/login', { email: state.user.email, password });
-          await apiClient.patch('/user/biometric/status?isEnabled=true');
-          await setSecureToken("biometric_enabled", "true");
-          
-          if (state.user) {
-            dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: true } });
-          }
-        } catch(e: any) {
-            throw new Error("Invalid password");
-        }
-      } else {
-          throw new Error("User not found");
+    enableBiometric: async () => {
+      await setSecureToken("biometric_enabled", "true");
+      if (state.user) {
+        dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: true } });
       }
     },
 
-    disableBiometric: async (password: string) => {
-      if (state.user?.email) {
-        try {
-          await apiClient.post('/public/auth/login', { email: state.user.email, password });
-          await apiClient.patch('/user/biometric/status?isEnabled=false');
-          await setSecureToken("biometric_enabled", "false");
-          
-          if (state.user) {
-            dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: false } });
-          }
-        } catch(e: any) {
-            throw new Error("Invalid password");
-        }
-      } else {
-          throw new Error("User not found");
+    disableBiometric: async () => {
+      await setSecureToken("biometric_enabled", "false");
+      if (state.user) {
+        dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: false } });
       }
     },
 
@@ -255,8 +246,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await getSecureToken("user_token");
         if (token) {
           const res = await apiClient.get('/user/me');
-          const user: User = res.data;
+          let user: User = res.data;
           const biometricEnabled = await getSecureToken("biometric_enabled");
+          const savedEmail = await getSecureToken("user_email");
+          
+          if (!user.email && savedEmail) {
+            user.email = savedEmail;
+          }
           
           dispatch({
             type: "RESTORE_TOKEN",

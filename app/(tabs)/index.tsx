@@ -100,8 +100,8 @@ export default function DashboardScreen() {
             {/* Saldo da Casa */}
             <View className="bg-primary rounded-3xl p-6 shadow-md" style={{ elevation: 4 }}>
               <View className="flex-row justify-between items-center mb-6">
-                <View className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
-                  <Text className="text-white font-bold text-xs">SALDO DA CASA</Text>
+                <View className="bg-background bg-opacity-20 px-3 py-1 rounded-2xl">
+                  <Text className="text-foreground font-bold text-xs">Saldo da Casa</Text>
                 </View>
                 <MaterialIcons name="account-balance-wallet" size={24} color="#ffffff" />
               </View>
@@ -114,7 +114,7 @@ export default function DashboardScreen() {
             <View className="flex-row gap-4">
               <View className="flex-1 bg-surface rounded-3xl p-5 border border-border shadow-sm items-center justify-center relative overflow-hidden">
                 <View className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-warning opacity-10" />
-                <View className="w-12 h-12 rounded-full bg-warning bg-opacity-20 items-center justify-center mb-3">
+                <View className="w-12 h-12 rounded-2xl bg-background bg-opacity-20 items-center justify-center mb-3">
                   <MaterialIcons name="schedule" size={24} color={colors.warning} />
                 </View>
                 <Text className="text-muted text-[10px] font-bold uppercase tracking-widest mb-1">Total Pendente</Text>
@@ -125,7 +125,7 @@ export default function DashboardScreen() {
 
               <View className="flex-1 bg-surface rounded-3xl p-5 border border-border shadow-sm items-center justify-center relative overflow-hidden">
                 <View className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-success opacity-10" />
-                <View className="w-12 h-12 rounded-full bg-success bg-opacity-20 items-center justify-center mb-3">
+                <View className="w-12 h-12 rounded-2xl bg-background bg-opacity-20 items-center justify-center mb-3">
                   <MaterialIcons name="check-circle" size={24} color={colors.success} />
                 </View>
                 <Text className="text-muted text-[10px] font-bold uppercase tracking-widest mb-1">Total Pago</Text>

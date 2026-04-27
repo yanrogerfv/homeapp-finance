@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { useAuth } from "@/lib/auth-context";
 
 export interface Split {
   id: string;
@@ -115,6 +116,7 @@ function financeReducer(state: FinanceState, action: FinanceAction): FinanceStat
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(financeReducer, initialState);
+  const { state: authState } = useAuth();
 
   const mapApiTransaction = (apiItem: any): Transaction => {
     return {
@@ -139,12 +141,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     try {
       const currentMonth = month || new Date().getMonth() + 1;
       const currentYear = year || new Date().getFullYear();
-      // Wait to get current user if missing? The API requires responsibleId according to Swagger
-      // but maybe backend accepts empty string or specific user. We'll pass empty string if not supplied.
-      const respId = responsibleId || "all"; 
       
-      const pendingRes = await apiClient.get(`/expenses?status=PENDING&month=${currentMonth}&year=${currentYear}&responsibleId=${respId}`);
-      const paidRes = await apiClient.get(`/expenses?status=PAID&month=${currentMonth}&year=${currentYear}&responsibleId=${respId}`);
+      let urlPending = `/expenses?status=PENDING&month=${currentMonth}&year=${currentYear}`;
+      let urlPaid = `/expenses?status=PAID&month=${currentMonth}&year=${currentYear}`;
+      if (responsibleId && responsibleId !== "all") {
+        urlPending += `&responsibleId=${responsibleId}`;
+        urlPaid += `&responsibleId=${responsibleId}`;
+      }
+      
+      const pendingRes = await apiClient.get(urlPending);
+      const paidRes = await apiClient.get(urlPaid);
       
       const allApiItems = [...(pendingRes.data || []), ...(paidRes.data || [])];
       
@@ -174,14 +180,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Attempt init load.
-    // If we're not logged in, apiClient will fail nicely
     const initData = async () => {
-      await getCategoriesAction();
-      await getTransactionsAction();
+      if (authState.user) {
+        await getCategoriesAction();
+        await getTransactionsAction();
+      }
     };
     initData();
-  }, []);
+  }, [authState.user]);
 
   const financeContext: FinanceContextType = {
     state,
