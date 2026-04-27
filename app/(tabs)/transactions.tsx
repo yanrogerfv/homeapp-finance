@@ -17,15 +17,15 @@ export default function TransactionsScreen() {
   const [searchText, setSearchText] = useState("");
 
   const filteredTransactions = financeState.transactions.filter((t) => {
-    const tStatus = (t as any).status || "paid"; 
+    const tStatus = (t as any).status || "PAID";
     let matchesType = true;
-    if (filterType === "pending") matchesType = tStatus === "pending";
-    if (filterType === "paid") matchesType = tStatus === "paid";
+    if (filterType === "pending") matchesType = tStatus === "PENDING";
+    if (filterType === "paid") matchesType = tStatus === "PAID";
 
     const matchesSearch =
       t.description.toLowerCase().includes(searchText.toLowerCase()) ||
       t.category.toLowerCase().includes(searchText.toLowerCase());
-    
+
     return matchesType && matchesSearch && t.type === "expense";
   });
 
@@ -43,18 +43,21 @@ export default function TransactionsScreen() {
       className="bg-surface rounded-2xl p-4 flex-row justify-between items-center mb-3 shadow-sm border border-border"
     >
       <View className="flex-row items-center gap-4 flex-1">
-        <View className={`w-12 h-12 rounded-xl items-center justify-center ${item.status === "pending" ? "bg-warning bg-opacity-20" : "bg-success bg-opacity-20"}`}>
-          <MaterialIcons name={item.status === "pending" ? "schedule" : "check"} size={24} color={item.status === "pending" ? colors.warning : colors.success} />
+        <View className={`w-12 h-12 rounded-xl items-center justify-center`}>
+          <MaterialIcons name={item.status === "PENDING" ? "schedule" : "check"} size={24} color={item.status === "PENDING" ? colors.warning : colors.success} />
         </View>
-        <View className="flex-1">
-          <Text className="text-foreground font-bold text-base mb-1">{item.description}</Text>
-          <Text className="text-muted text-xs font-medium">{item.category} • Vence: {formatDate(item.dueDate || item.date)}</Text>
+        <View>
+          <Text className="font-semibold">{item.title}</Text>
+          <View className="flex-1">
+            <Text className="text-foreground font-bold text-base mb-1">{item.description}</Text>
+            <Text className="text-muted text-xs font-medium">{item.category} • Vence: {formatDate(item.dueDate || item.date)}</Text>
+          </View>
         </View>
       </View>
       <View className="items-end">
         <Text className="font-bold text-base text-foreground">{formatCurrency(item.amount)}</Text>
-        <Text className={`text-xs font-bold mt-1 ${item.status === 'pending' ? 'text-warning' : 'text-success'}`}>
-          {item.status === 'pending' ? 'Pendente' : 'Pago'}
+        <Text className={`text-xs font-bold mt-1 ${item.status === 'PENDING' ? 'text-warning' : 'text-success'}`}>
+          {item.status === 'PENDING' ? 'Pendente' : 'Pago'}
         </Text>
       </View>
     </TouchableOpacity>

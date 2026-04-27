@@ -135,7 +135,7 @@ export default function SettingsScreen() {
       className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl bg-surface border border-border`}
     >
       <View className="flex-row items-center gap-4 flex-1">
-        <View className="w-10 h-10 rounded-xl border items-center justify-center">
+        <View className="w-10 h-10 rounded-xl items-center justify-center">
           <MaterialIcons name={icon as any} size={22} color={colors.primary} />
         </View>
         <View className="flex-1">
@@ -216,7 +216,7 @@ export default function SettingsScreen() {
             <SettingRow
               icon="info-outline"
               title="Versão do App"
-              subtitle="2.0.0"
+              subtitle="0.1.0"
               rightElement={<Text className="text-muted font-bold">Mais sobre</Text>}
             />
           </View>
@@ -246,7 +246,7 @@ export default function SettingsScreen() {
                   {members.map((member: any) => (
                     <View key={member.id} className="flex-row items-center gap-3 mb-3 p-3 bg-surface border border-border rounded-xl">
                       <View className="w-10 h-10 rounded-2xl border border-gray-600 items-center justify-center">
-                        <Text className="text-primary font-bold text-lg">{member.name?.[0] || 'Y'}</Text>
+                        <Text className="text-primary font-bold text-lg">{member.name ? member.name[0] : member.displayName ? member.displayName[0] : 'U'}</Text>
                       </View>
                       <View className="flex-1">
                         <Text className="font-bold text-foreground">

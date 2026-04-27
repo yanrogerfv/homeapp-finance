@@ -17,7 +17,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
-import { fetchHousemates, addExpense } from "@/lib/api";
+import { fetchHousemates } from "@/lib/api";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
@@ -49,14 +49,14 @@ export default function AddTransactionScreen() {
   const [divisionType, setDivisionType] = useState<"equal" | "manual">("equal");
 
   const [housemates, setHousemates] = useState<any[]>([]);
-  const [splitUserIds, setSplitUserIds] = useState<string[]>([]);
+  const [splitUsersIds, setsplitUsersIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   useEffect(() => {
     fetchHousemates().then(hm => {
       setHousemates(hm);
-      setSplitUserIds(hm.map((h: any) => h.id));
+      setsplitUsersIds(hm.map((h: any) => h.id));
     }).catch(console.error);
   }, []);
 
@@ -87,17 +87,25 @@ export default function AddTransactionScreen() {
       const [day, month, year] = date.split("/");
       const formattedApiDate = `${year}-${month}-${day}`;
 
+      let formattedEndDate;
+      if (isPeriodic && endDate) {
+        const [eDay, eMonth, eYear] = endDate.split("/");
+        formattedEndDate = `${eYear}-${eMonth}-${eDay}`;
+      }
+
+      const numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+
       const payload: any = {
         type,
-        amount: parseFloat(amount),
+        amount: numericAmount,
         title: title,
         categoryId: categoryId,
         dueDate: formattedApiDate,
         isPeriodic,
         frequency: isPeriodic ? frequency : undefined,
-        endDate: isPeriodic && endDate ? endDate : undefined,
+        endDate: formattedEndDate,
         notes: notes || undefined,
-        splitUserIds: splitUserIds
+        splitUsersIds: splitUsersIds
       };
 
       if (type === "expense") {
@@ -161,11 +169,21 @@ export default function AddTransactionScreen() {
               <View className="flex-row items-center bg-surface border border-border rounded-xl px-4 py-3">
                 <Text className="text-foreground font-extrabold text-xl">R$</Text>
                 <TextInput
-                  placeholder="0.00"
+                  placeholder="0,00"
                   placeholderTextColor={colors.muted}
                   value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="decimal-pad"
+                  onChangeText={(text) => {
+                    let cleaned = text.replace(/\D/g, '');
+                    if (cleaned === '') {
+                      setAmount('');
+                      return;
+                    }
+                    let number = parseInt(cleaned, 10);
+                    let formatted = (number / 100).toFixed(2).replace('.', ',');
+                    formatted = formatted.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    setAmount(formatted);
+                  }}
+                  keyboardType="numeric"
                   editable={!loading}
                   className="flex-1 ml-3 text-foreground font-semibold text-lg"
                 />
@@ -255,14 +273,14 @@ export default function AddTransactionScreen() {
                   <Text className="text-sm font-bold text-foreground mb-2">Dividir com: *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-1 pb-1">
                     {housemates.map((person) => {
-                      const isSelected = splitUserIds.includes(person.id);
+                      const isSelected = splitUsersIds.includes(person.id);
                       return (
                         <TouchableOpacity
                           key={`split-${person.id}`}
                           onPress={() => {
-                            setSplitUserIds(prev => 
-                              isSelected 
-                                ? prev.filter(id => id !== person.id) 
+                            setsplitUsersIds(prev =>
+                              isSelected
+                                ? prev.filter(id => id !== person.id)
                                 : [...prev, person.id]
                             );
                           }}
@@ -351,10 +369,22 @@ export default function AddTransactionScreen() {
                 <View>
                   <Text className="text-sm font-bold text-foreground mb-2">Data de Término (Opcional)</Text>
                   <TextInput
-                    placeholder="YYYY-MM-DD"
+                    placeholder="DD/MM/YYYY"
                     placeholderTextColor={colors.muted}
                     value={endDate}
-                    onChangeText={setEndDate}
+                    onChangeText={(text) => {
+                      let cleaned = text.replace(/\D/g, "");
+                      let formatted = cleaned;
+                      if (cleaned.length > 2) {
+                        formatted = cleaned.slice(0, 2) + "/" + cleaned.slice(2);
+                      }
+                      if (cleaned.length > 4) {
+                        formatted = formatted.slice(0, 5) + "/" + cleaned.slice(4, 8);
+                      }
+                      setEndDate(formatted);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={10}
                     editable={!loading}
                     className="bg-background border border-border rounded-lg px-3 py-3 text-foreground"
                   />

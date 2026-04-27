@@ -154,7 +154,7 @@ export default function DashboardScreen() {
                     key={item.id}
                     className="bg-surface rounded-3xl p-5 flex-row items-center border border-border shadow-sm"
                   >
-                    <View className="w-[46px] h-[46px] rounded-2xl bg-error bg-opacity-10 items-center justify-center mr-4">
+                    <View className="w-[46px] h-[46px] rounded-2xl  items-center justify-center mr-4">
                       <MaterialIcons name="event" size={22} color={colors.error} />
                     </View>
                     <View className="flex-1">
@@ -162,7 +162,7 @@ export default function DashboardScreen() {
                         {item.title}
                       </Text>
                       <Text className="text-muted text-[11px] font-bold uppercase tracking-wider">
-                        Vence em: {formatDate(item.date)}
+                        Vence em: {formatDate(item.dueDate)}
                       </Text>
                     </View>
                     <Text className="font-extrabold text-error text-lg ml-2">

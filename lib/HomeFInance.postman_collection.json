@@ -1,0 +1,916 @@
+{
+  "info": {
+    "_postman_id": "da87d1b8-fadc-4cfc-896f-135814198900",
+    "name": "HomeFInance",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "26784349"
+  },
+  "item": [
+    {
+      "name": "Supabase",
+      "item": [
+        {
+          "name": "Registrar Usuario direto no supabase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{supabase-public-apikey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"juniork45vgp@gmail.com\",\r\n  \"password\": \"123456\",\r\n    \"data\": {\r\n      \"first_name\": \"José\",\r\n      \"last_name\": \"Duarte\",\r\n      \"display_name\": \"José Duarte\",\r\n      \"role\": \"ADMIN\"\r\n  }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://acncrrpfandiezenajnl.supabase.co/auth/v1/signup",
+              "protocol": "https",
+              "host": [
+                "acncrrpfandiezenajnl",
+                "supabase",
+                "co"
+              ],
+              "path": [
+                "auth",
+                "v1",
+                "signup"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login direto no supabase",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var responseJSON = pm.response.json();\r",
+                  "pm.environment.set(\"AuthToken\", responseJSON.access_token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{supabase-public-apikey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"juniork45vgp@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://acncrrpfandiezenajnl.supabase.co/auth/v1/token?grant_type=password",
+              "protocol": "https",
+              "host": [
+                "acncrrpfandiezenajnl",
+                "supabase",
+                "co"
+              ],
+              "path": [
+                "auth",
+                "v1",
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Usuarios registrados",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{supabase-secret-apikey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://acncrrpfandiezenajnl.supabase.co/auth/v1/admin/users",
+              "protocol": "https",
+              "host": [
+                "acncrrpfandiezenajnl",
+                "supabase",
+                "co"
+              ],
+              "path": [
+                "auth",
+                "v1",
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "usuarios cadastrados",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/user/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "user",
+                "all"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"ledoy19103@onbap.com\",\r\n    \"password\": \"123456\",\r\n    \"firstName\": \"User\",\r\n    \"lastName\": \"Teste\",\r\n    \"displayName\": \"User de Teste\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/public/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var responseJSON = pm.response.json();\r",
+                  "pm.environment.set(\"AuthToken\", responseJSON.access_token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"juniork45vgp@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/public/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var responseJSON = pm.response.json();\r",
+                  "pm.environment.set(\"AuthToken\", responseJSON.access_token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"ledoy19103@onbap.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/public/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "House",
+      "item": [
+        {
+          "name": "Create House",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Casa de Teste\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/house/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "entrar em uma casa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/house/join?inviteCode=XX1GY",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "join"
+              ],
+              "query": [
+                {
+                  "key": "inviteCode",
+                  "value": "XX1GY"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Casa ativa do user",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/house/my-house",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "my-house"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resumo da casa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/house/resume",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "resume"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "sair da casa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/house/leave",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "leave"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "remover membro da casa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/house/remove-member?userId=cd414a42-45cc-40a7-8aac-87d277ad50ed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "remove-member"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "cd414a42-45cc-40a7-8aac-87d277ad50ed"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar saldo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/house/balance?valueToSubtract=50.0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "house",
+                "balance"
+              ],
+              "query": [
+                {
+                  "key": "valueToAdd",
+                  "value": "50.5",
+                  "disabled": true
+                },
+                {
+                  "key": "valueToSubtract",
+                  "value": "50.0"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "User data",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"\"\r\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Alterar status da biometria",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"\"\r\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/biometric/status?isEnabled=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "biometric",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "isEnabled",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "item": [
+        {
+          "name": "Buscar Despesas",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expenses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2026",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "month",
+                  "value": "3",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "responsibleId",
+                  "value": "097e029e-9b53-436b-95d5-1aa4348ba037",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Despesa por ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expenses/:expenseId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                ":expenseId"
+              ],
+              "variable": [
+                {
+                  "key": "expenseId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Categorias de despesas",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expenses/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "criar despesa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Reforma\",\r\n  \"description\": \"\",\r\n  \"amount\": 2000,\r\n  \"categoryId\": \"830da0f3-81dc-4fdb-b2bb-6757774dda9a\",\r\n  \"dueDate\": \"2026-03-29\",\r\n  \"responsibleId\": \"cd414a42-45cc-40a7-8aac-87d277ad50ed\",\r\n  \"splitUsersIds\": [\"cd414a42-45cc-40a7-8aac-87d277ad50ed\", \"8a941ced-0e7a-4316-adb8-a1f3a2baae80\"]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Status de despesa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"PAID\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses/:splitId/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                ":splitId",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "splitId",
+                  "value": "097e029e-9b53-436b-95d5-1aa4348ba037"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Status de divisão",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"PAID\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/expenses/split/:splitId/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                "split",
+                ":splitId",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "splitId",
+                  "value": "4d70b9ab-c8ad-4878-ac33-67ab6787414c"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Apagar despesa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/expenses/:expenseId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "expenses",
+                ":expenseId"
+              ],
+              "variable": [
+                {
+                  "key": "expenseId",
+                  "value": "097e029e-9b53-436b-95d5-1aa4348ba037"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "item": [
+        {
+          "name": "Relatorio de despesas do mes atual",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AuthToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reports/expense-report",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "expense-report"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

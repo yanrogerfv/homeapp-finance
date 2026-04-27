@@ -141,19 +141,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     try {
       const currentMonth = month || new Date().getMonth() + 1;
       const currentYear = year || new Date().getFullYear();
-      
+
       let urlPending = `/expenses?status=PENDING&month=${currentMonth}&year=${currentYear}`;
       let urlPaid = `/expenses?status=PAID&month=${currentMonth}&year=${currentYear}`;
       if (responsibleId && responsibleId !== "all") {
         urlPending += `&responsibleId=${responsibleId}`;
         urlPaid += `&responsibleId=${responsibleId}`;
       }
-      
+
       const pendingRes = await apiClient.get(urlPending);
       const paidRes = await apiClient.get(urlPaid);
-      
+
       const allApiItems = [...(pendingRes.data || []), ...(paidRes.data || [])];
-      
+
       dispatch({
         type: "SET_TRANSACTIONS",
         payload: allApiItems.map(mapApiTransaction),
@@ -203,7 +203,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           categoryId: txData.categoryId || state.categories[0]?.id || "",
           dueDate: txData.dueDate || new Date().toISOString().split("T")[0],
           responsibleId: txData.responsibleId || "",
-          splitUserIds: txData.splitUserIds || [],
+          splitUsersIds: txData.splitUsersIds || [],
         };
 
         const res = await apiClient.post("/expenses", payload);
