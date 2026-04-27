@@ -52,8 +52,8 @@ const config: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
     "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "ITSAppUsesNonExemptEncryption": false
+    }
   },
   android: {
     adaptiveIcon: {
@@ -132,6 +132,11 @@ const config: ExpoConfig = {
     typedRoutes: true,
     reactCompiler: true,
     tsconfigPaths: true,
+  },
+  extra: {
+    eas: {
+      projectId: "31b6d2cc-d5f2-451e-b0ee-8f466f32d6d9"
+    }
   },
 };
 
