@@ -1,31 +1,43 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { v4 as uuidv4 } from "uuid";
+import { apiClient } from "@/lib/apiClient";
+import { useAuth } from "@/lib/auth-context";
+
+export interface Split {
+  id: string;
+  userId: string;
+  userName: string;
+  status: string;
+  amount: number;
+}
 
 export interface Transaction {
   id: string;
   type: "income" | "expense";
   amount: number;
+  title: string;
   description: string;
   category: string;
-  date: string; // ISO date string
-  dueDate?: string; // Appears for expenses
-  status?: "pending" | "paid";
-  responsible?: string; // Resident user ID/name
+  categoryName?: string;
+  date: string;
+  dueDate?: string;
+  status?: "PENDING" | "PAID" | "pending" | "paid";
+  responsible?: string;
+  splits?: Split[];
+  // Legacy mock fields to prevent UI errors
   divisionType?: "equal" | "manual";
-  isPeriodic: boolean;
-  frequency?: "weekly" | "monthly" | "quarterly" | "yearly";
-  endDate?: string; // ISO date string
+  isPeriodic?: boolean;
+  frequency?: string;
+  endDate?: string;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Category {
   id: string;
   name: string;
-  type: "income" | "expense";
-  isCustom: boolean;
+  type?: "income" | "expense";
+  isCustom?: boolean;
   color?: string;
 }
 
@@ -47,10 +59,10 @@ export type FinanceAction =
 
 interface FinanceContextType {
   state: FinanceState;
-  addTransaction: (transaction: Omit<Transaction, "id" | "createdAt" | "updatedAt">) => Promise<void>;
-  updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>;
+  addTransaction: (transaction: any) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
-  getTransactions: () => Promise<void>;
+  getTransactions: (month?: number, year?: number, responsibleId?: string) => Promise<void>;
   addCategory: (name: string, type: "income" | "expense") => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   getCategories: () => Promise<void>;
@@ -62,30 +74,9 @@ interface FinanceContextType {
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
-const DEFAULT_CATEGORIES: Category[] = [
-  // Income categories
-  { id: "income-1", name: "Salary", type: "income", isCustom: false },
-  { id: "income-2", name: "Bonus", type: "income", isCustom: false },
-  { id: "income-3", name: "Freelance", type: "income", isCustom: false },
-  { id: "income-4", name: "Investment", type: "income", isCustom: false },
-  { id: "income-5", name: "Other Income", type: "income", isCustom: false },
-
-  // Expense categories
-  { id: "expense-1", name: "Rent", type: "expense", isCustom: false },
-  { id: "expense-2", name: "Utilities", type: "expense", isCustom: false },
-  { id: "expense-3", name: "Groceries", type: "expense", isCustom: false },
-  { id: "expense-4", name: "Transportation", type: "expense", isCustom: false },
-  { id: "expense-5", name: "Entertainment", type: "expense", isCustom: false },
-  { id: "expense-6", name: "Healthcare", type: "expense", isCustom: false },
-  { id: "expense-7", name: "Insurance", type: "expense", isCustom: false },
-  { id: "expense-8", name: "Dining Out", type: "expense", isCustom: false },
-  { id: "expense-9", name: "Shopping", type: "expense", isCustom: false },
-  { id: "expense-10", name: "Other Expense", type: "expense", isCustom: false },
-];
-
 const initialState: FinanceState = {
   transactions: [],
-  categories: DEFAULT_CATEGORIES,
+  categories: [],
   isLoading: true,
 };
 
@@ -125,67 +116,98 @@ function financeReducer(state: FinanceState, action: FinanceAction): FinanceStat
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(financeReducer, initialState);
+  const { state: authState } = useAuth();
 
-  // Load data on mount
+  const mapApiTransaction = (apiItem: any): Transaction => {
+    return {
+      id: apiItem.id,
+      title: apiItem.title || apiItem.description || "Expense",
+      description: apiItem.description || "",
+      amount: apiItem.amount,
+      type: "expense", // The backend seems to deal purely with expenses in this schema
+      status: apiItem.status,
+      date: apiItem.dueDate || new Date().toISOString(),
+      dueDate: apiItem.dueDate,
+      category: apiItem.categoryName || "Unknown",
+      categoryName: apiItem.categoryName,
+      responsible: apiItem.responsible?.displayName || apiItem.responsible?.id,
+      splits: apiItem.splits || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  const getTransactionsAction = async (month?: number, year?: number, responsibleId?: string) => {
+    try {
+      const currentMonth = month || new Date().getMonth() + 1;
+      const currentYear = year || new Date().getFullYear();
+
+      let urlPending = `/expenses?status=PENDING&month=${currentMonth}&year=${currentYear}`;
+      let urlPaid = `/expenses?status=PAID&month=${currentMonth}&year=${currentYear}`;
+      if (responsibleId && responsibleId !== "all") {
+        urlPending += `&responsibleId=${responsibleId}`;
+        urlPaid += `&responsibleId=${responsibleId}`;
+      }
+
+      const pendingRes = await apiClient.get(urlPending);
+      const paidRes = await apiClient.get(urlPaid);
+
+      const allApiItems = [...(pendingRes.data || []), ...(paidRes.data || [])];
+
+      dispatch({
+        type: "SET_TRANSACTIONS",
+        payload: allApiItems.map(mapApiTransaction),
+      });
+    } catch (error) {
+      console.error("Error getting transactions:", error);
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
+  const getCategoriesAction = async () => {
+    try {
+      const res = await apiClient.get("/expenses/categories");
+      const mapped = res.data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        type: "expense",
+        isCustom: false,
+      }));
+      dispatch({ type: "SET_CATEGORIES", payload: mapped });
+    } catch (error) {
+      console.error("Error getting categories:", error);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const transactionsJson = await AsyncStorage.getItem("transactions");
-        const categoriesJson = await AsyncStorage.getItem("categories");
-
-        if (transactionsJson) {
-          dispatch({
-            type: "SET_TRANSACTIONS",
-            payload: JSON.parse(transactionsJson),
-          });
-        } else {
-          dispatch({ type: "SET_LOADING", payload: false });
-        }
-
-        if (categoriesJson) {
-          dispatch({
-            type: "SET_CATEGORIES",
-            payload: JSON.parse(categoriesJson),
-          });
-        } else {
-          // Initialize with default categories
-          await AsyncStorage.setItem(
-            "categories",
-            JSON.stringify(DEFAULT_CATEGORIES)
-          );
-        }
-      } catch (error) {
-        console.error("Error loading finance data:", error);
-        dispatch({ type: "SET_LOADING", payload: false });
+    const initData = async () => {
+      if (authState.user) {
+        await getCategoriesAction();
+        await getTransactionsAction();
       }
     };
-
-    loadData();
-  }, []);
+    initData();
+  }, [authState.user]);
 
   const financeContext: FinanceContextType = {
     state,
-    addTransaction: async (transactionData) => {
+    getTransactions: getTransactionsAction,
+    getCategories: getCategoriesAction,
+
+    addTransaction: async (txData) => {
       try {
-        const transaction: Transaction = {
-          ...transactionData,
-          id: uuidv4(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+        const payload = {
+          title: txData.title || txData.description?.substring(0, 20) || "Expense",
+          description: txData.description || "",
+          amount: txData.amount,
+          categoryId: txData.categoryId || state.categories[0]?.id || "",
+          dueDate: txData.dueDate || new Date().toISOString().split("T")[0],
+          responsibleId: txData.responsibleId || "",
+          splitUsersIds: txData.splitUsersIds || [],
         };
 
-        dispatch({ type: "ADD_TRANSACTION", payload: transaction });
-
-        const updatedTransactions = [transaction, ...state.transactions];
-        await AsyncStorage.setItem(
-          "transactions",
-          JSON.stringify(updatedTransactions)
-        );
-
-        // If periodic, generate future transactions
-        if (transaction.isPeriodic && transaction.frequency) {
-          await generatePeriodicTransactions(transaction, updatedTransactions);
-        }
+        const res = await apiClient.post("/expenses", payload);
+        dispatch({ type: "ADD_TRANSACTION", payload: mapApiTransaction(res.data) });
       } catch (error) {
         console.error("Error adding transaction:", error);
         throw error;
@@ -194,29 +216,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     updateTransaction: async (id, updates) => {
       try {
-        const transaction = state.transactions.find((t) => t.id === id);
-        if (!transaction) {
-          throw new Error("Transaction not found");
+        if (updates.status) {
+          const res = await apiClient.patch(`/expenses/${id}/status`, { status: updates.status.toUpperCase() });
+          dispatch({ type: "UPDATE_TRANSACTION", payload: mapApiTransaction(res.data) });
+        } else {
+          // If the backend had a full PUT /expenses/{id}, we'd call it here.
+          // Fallback to local update if just patching visual details
+          const existing = state.transactions.find((t) => t.id === id);
+          if (existing) {
+            dispatch({ type: "UPDATE_TRANSACTION", payload: { ...existing, ...updates } });
+          }
         }
-
-        const updatedTransaction: Transaction = {
-          ...transaction,
-          ...updates,
-          id: transaction.id,
-          createdAt: transaction.createdAt,
-          updatedAt: new Date().toISOString(),
-        };
-
-        dispatch({ type: "UPDATE_TRANSACTION", payload: updatedTransaction });
-
-        const updatedTransactions = state.transactions.map((t) =>
-          t.id === id ? updatedTransaction : t
-        );
-
-        await AsyncStorage.setItem(
-          "transactions",
-          JSON.stringify(updatedTransactions)
-        );
       } catch (error) {
         console.error("Error updating transaction:", error);
         throw error;
@@ -225,82 +235,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
     deleteTransaction: async (id) => {
       try {
+        await apiClient.delete(`/expenses/${id}`);
         dispatch({ type: "DELETE_TRANSACTION", payload: id });
-
-        const updatedTransactions = state.transactions.filter((t) => t.id !== id);
-        await AsyncStorage.setItem(
-          "transactions",
-          JSON.stringify(updatedTransactions)
-        );
       } catch (error) {
         console.error("Error deleting transaction:", error);
         throw error;
       }
     },
 
-    getTransactions: async () => {
-      try {
-        const transactionsJson = await AsyncStorage.getItem("transactions");
-        if (transactionsJson) {
-          dispatch({
-            type: "SET_TRANSACTIONS",
-            payload: JSON.parse(transactionsJson),
-          });
-        }
-      } catch (error) {
-        console.error("Error getting transactions:", error);
-      }
-    },
-
     addCategory: async (name, type) => {
-      try {
-        const category: Category = {
-          id: uuidv4(),
-          name,
-          type,
-          isCustom: true,
-        };
-
-        dispatch({ type: "ADD_CATEGORY", payload: category });
-
-        const updatedCategories = [...state.categories, category];
-        await AsyncStorage.setItem(
-          "categories",
-          JSON.stringify(updatedCategories)
-        );
-      } catch (error) {
-        console.error("Error adding category:", error);
-        throw error;
-      }
+      // Backend does not expose a POST /expenses/categories
+      console.warn("Adding custom categories not supported via backend yet.");
     },
 
     deleteCategory: async (id) => {
-      try {
-        dispatch({ type: "DELETE_CATEGORY", payload: id });
-
-        const updatedCategories = state.categories.filter((c) => c.id !== id);
-        await AsyncStorage.setItem(
-          "categories",
-          JSON.stringify(updatedCategories)
-        );
-      } catch (error) {
-        console.error("Error deleting category:", error);
-        throw error;
-      }
-    },
-
-    getCategories: async () => {
-      try {
-        const categoriesJson = await AsyncStorage.getItem("categories");
-        if (categoriesJson) {
-          dispatch({
-            type: "SET_CATEGORIES",
-            payload: JSON.parse(categoriesJson),
-          });
-        }
-      } catch (error) {
-        console.error("Error getting categories:", error);
-      }
+      console.warn("Deleting categories not supported via backend yet.");
     },
 
     getTransactionsByMonth: (year, month) => {
@@ -311,33 +260,15 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     },
 
     getTotalIncome: (year, month) => {
-      const transactions = year && month
-        ? state.transactions.filter((t) => {
-            const date = new Date(t.date);
-            return (
-              t.type === "income" &&
-              date.getFullYear() === year &&
-              date.getMonth() === month - 1
-            );
-          })
-        : state.transactions.filter((t) => t.type === "income");
-
-      return transactions.reduce((sum, t) => sum + t.amount, 0);
+      // API primarily handles expenses right now.
+      return 0;
     },
 
     getTotalExpense: (year, month) => {
-      const transactions = year && month
-        ? state.transactions.filter((t) => {
-            const date = new Date(t.date);
-            return (
-              t.type === "expense" &&
-              date.getFullYear() === year &&
-              date.getMonth() === month - 1
-            );
-          })
-        : state.transactions.filter((t) => t.type === "expense");
-
-      return transactions.reduce((sum, t) => sum + t.amount, 0);
+      const txs = year && month
+        ? financeContext.getTransactionsByMonth(year, month)
+        : state.transactions;
+      return txs.reduce((sum, t) => sum + (t.type === "expense" ? t.amount : 0), 0);
     },
 
     getBalance: (year, month) => {
@@ -345,67 +276,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const expense = financeContext.getTotalExpense(year, month);
       return income - expense;
     },
-  };
-
-  const generatePeriodicTransactions = async (
-    transaction: Transaction,
-    currentTransactions: Transaction[]
-  ) => {
-    try {
-      const startDate = new Date(transaction.date);
-      const endDate = transaction.endDate ? new Date(transaction.endDate) : null;
-      const generatedTransactions: Transaction[] = [];
-
-      let currentDate = new Date(startDate);
-      currentDate.setDate(currentDate.getDate() + 1); // Start from next occurrence
-
-      while (!endDate || currentDate <= endDate) {
-        // Generate up to 12 months ahead
-        if (currentDate.getTime() - startDate.getTime() > 365 * 24 * 60 * 60 * 1000) {
-          break;
-        }
-
-        const newTransaction: Transaction = {
-          ...transaction,
-          id: uuidv4(),
-          date: currentDate.toISOString().split("T")[0],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        generatedTransactions.push(newTransaction);
-
-        // Move to next occurrence
-        switch (transaction.frequency) {
-          case "weekly":
-            currentDate.setDate(currentDate.getDate() + 7);
-            break;
-          case "monthly":
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            break;
-          case "quarterly":
-            currentDate.setMonth(currentDate.getMonth() + 3);
-            break;
-          case "yearly":
-            currentDate.setFullYear(currentDate.getFullYear() + 1);
-            break;
-        }
-      }
-
-      if (generatedTransactions.length > 0) {
-        const updatedTransactions = [...generatedTransactions, ...currentTransactions];
-        await AsyncStorage.setItem(
-          "transactions",
-          JSON.stringify(updatedTransactions)
-        );
-
-        generatedTransactions.forEach((t) => {
-          dispatch({ type: "ADD_TRANSACTION", payload: t });
-        });
-      }
-    } catch (error) {
-      console.error("Error generating periodic transactions:", error);
-    }
   };
 
   return (

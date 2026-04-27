@@ -17,69 +17,59 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
-import { fetchHousemates, addExpense } from "@/lib/api";
+import { fetchHousemates } from "@/lib/api";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
   const { type: transactionType } = useLocalSearchParams();
-  const { addTransaction } = useFinance();
+  const { state: financeState, addTransaction } = useFinance();
   const { colorScheme } = useThemeContext();
   const colors = SchemeColors[colorScheme];
 
   const [type, setType] = useState<"income" | "expense">(
     (transactionType as "income" | "expense") || "expense"
   );
-  
+
   const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [title, setTitle] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [date, setDate] = useState(() => {
     const d = new Date();
     return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   });
-  
+
   // Periodic fields
   const [isPeriodic, setIsPeriodic] = useState(false);
   const [frequency, setFrequency] = useState<"weekly" | "monthly" | "quarterly" | "yearly">("monthly");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
-  
+
   // Expense/House fields
   const [responsible, setResponsible] = useState("");
   const [divisionType, setDivisionType] = useState<"equal" | "manual">("equal");
-  
+
   const [housemates, setHousemates] = useState<any[]>([]);
+  const [splitUsersIds, setsplitUsersIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchHousemates().then(setHousemates).catch(console.error);
+    fetchHousemates().then(hm => {
+      setHousemates(hm);
+      setsplitUsersIds(hm.map((h: any) => h.id));
+    }).catch(console.error);
   }, []);
 
-  const incomeCategories = ["Salário", "Bônus", "Freelance", "Investimento", "Outras Rendas"];
-  const expenseCategories = [
-    "Aluguel",
-    "Água/Luz/Gás",
-    "Internet",
-    "Mercado",
-    "Manutenção",
-    "Faxina",
-    "Transporte",
-    "Saúde",
-    "Lazer",
-    "Compras",
-    "Outras Despesas",
-  ];
-
-  const currentCategories = type === "income" ? incomeCategories : expenseCategories;
+  // Use categories from context
+  const currentCategories = financeState.categories;
 
   // Whenever type changes, reset category if it doesn't fit
   useEffect(() => {
-    setCategory("");
+    setCategoryId("");
   }, [type]);
 
   const handleSave = async () => {
-    if (!amount || !description || !category) {
+    if (!amount || !title || !categoryId) {
       Alert.alert("Erro", "Por favor preencha os campos obrigatórios (*)");
       return;
     }
@@ -92,28 +82,37 @@ export default function AddTransactionScreen() {
     setLoading(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       // Convert from DD/MM/YYYY to YYYY-MM-DD for backend
       const [day, month, year] = date.split("/");
       const formattedApiDate = `${year}-${month}-${day}`;
 
+      let formattedEndDate;
+      if (isPeriodic && endDate) {
+        const [eDay, eMonth, eYear] = endDate.split("/");
+        formattedEndDate = `${eYear}-${eMonth}-${eDay}`;
+      }
+
+      const numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
+
       const payload: any = {
         type,
-        amount: parseFloat(amount),
-        description,
-        category,
-        date: formattedApiDate,
+        amount: numericAmount,
+        title: title,
+        categoryId: categoryId,
+        dueDate: formattedApiDate,
         isPeriodic,
         frequency: isPeriodic ? frequency : undefined,
-        endDate: isPeriodic && endDate ? endDate : undefined,
+        endDate: formattedEndDate,
         notes: notes || undefined,
+        splitUsersIds: splitUsersIds
       };
 
       if (type === "expense") {
-        payload.responsible = responsible;
+        payload.responsibleId = responsible;
         payload.divisionType = divisionType;
         payload.status = "pending";
-        await addExpense(payload); // send to your api
+        // The addTransaction call below already POSTs to /expenses implicitly
       }
 
       await addTransaction(payload);
@@ -131,7 +130,7 @@ export default function AddTransactionScreen() {
     <ScreenContainer className="bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6" keyboardShouldPersistTaps="handled">
         <View className="gap-6 pb-12">
-          
+
           {/* Header & Type Toggle */}
           <View>
             <Text className="text-2xl font-bold text-foreground mb-4">
@@ -140,9 +139,8 @@ export default function AddTransactionScreen() {
             <View className="flex-row gap-2">
               <TouchableOpacity
                 onPress={() => setType("income")}
-                className={`flex-1 py-3 rounded-xl flex-row justify-center items-center ${
-                  type === "income" ? "bg-success" : "bg-surface border border-border"
-                }`}
+                className={`flex-1 py-3 rounded-xl flex-row justify-center items-center ${type === "income" ? "bg-success" : "bg-surface border border-border"
+                  }`}
               >
                 <MaterialIcons name="arrow-upward" size={18} color={type === "income" ? "#fff" : colors.foreground} style={{ marginRight: 6 }} />
                 <Text className={`font-bold ${type === "income" ? "text-white" : "text-foreground"}`}>
@@ -151,9 +149,8 @@ export default function AddTransactionScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setType("expense")}
-                className={`flex-1 py-3 rounded-xl flex-row justify-center items-center ${
-                  type === "expense" ? "bg-error" : "bg-surface border border-border"
-                }`}
+                className={`flex-1 py-3 rounded-xl flex-row justify-center items-center ${type === "expense" ? "bg-error" : "bg-surface border border-border"
+                  }`}
               >
                 <MaterialIcons name="arrow-downward" size={18} color={type === "expense" ? "#fff" : colors.foreground} style={{ marginRight: 6 }} />
                 <Text className={`font-bold ${type === "expense" ? "text-white" : "text-foreground"}`}>
@@ -165,18 +162,28 @@ export default function AddTransactionScreen() {
 
           {/* Form Fields */}
           <View className="gap-5">
-            
+
             {/* Amount */}
             <View>
               <Text className="text-sm font-bold text-foreground mb-2">Valor *</Text>
               <View className="flex-row items-center bg-surface border border-border rounded-xl px-4 py-3">
                 <Text className="text-foreground font-extrabold text-xl">R$</Text>
                 <TextInput
-                  placeholder="0.00"
+                  placeholder="0,00"
                   placeholderTextColor={colors.muted}
                   value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="decimal-pad"
+                  onChangeText={(text) => {
+                    let cleaned = text.replace(/\D/g, '');
+                    if (cleaned === '') {
+                      setAmount('');
+                      return;
+                    }
+                    let number = parseInt(cleaned, 10);
+                    let formatted = (number / 100).toFixed(2).replace('.', ',');
+                    formatted = formatted.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    setAmount(formatted);
+                  }}
+                  keyboardType="numeric"
                   editable={!loading}
                   className="flex-1 ml-3 text-foreground font-semibold text-lg"
                 />
@@ -189,8 +196,8 @@ export default function AddTransactionScreen() {
               <TextInput
                 placeholder="Ex: Conta de Luz, Salário..."
                 placeholderTextColor={colors.muted}
-                value={description}
-                onChangeText={setDescription}
+                value={title}
+                onChangeText={setTitle}
                 editable={!loading}
                 className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground font-semibold"
               />
@@ -199,12 +206,12 @@ export default function AddTransactionScreen() {
             {/* Category Select Modal Trigger */}
             <View>
               <Text className="text-sm font-bold text-foreground mb-2">Categoria *</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="bg-surface border border-border rounded-xl px-4 py-3 flex-row justify-between items-center"
                 onPress={() => setIsCategoryModalOpen(true)}
               >
-                <Text className={`font-semibold ${category ? "text-foreground" : "text-muted"}`}>
-                  {category || "Abra para selecionar..."}
+                <Text className={`font-semibold ${categoryId ? "text-foreground" : "text-muted"}`}>
+                  {categoryId ? currentCategories.find(c => c.id === categoryId)?.name : "Abra para selecionar..."}
                 </Text>
                 <MaterialIcons name="arrow-drop-down" size={24} color={colors.muted} />
               </TouchableOpacity>
@@ -239,26 +246,55 @@ export default function AddTransactionScreen() {
             {type === "expense" && (
               <View className="bg-surface border border-border rounded-xl p-4 gap-4 bg-opacity-50">
                 <Text className="text-foreground font-bold text-sm mb-1 uppercase tracking-wider opacity-80">Detalhes da Casa</Text>
-                
+
                 {/* Responsible Housemate */}
                 <View>
                   <Text className="text-sm font-bold text-foreground mb-2">Responsável pelo Pagamento *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-1 pb-1">
                     {housemates.map((person) => (
                       <TouchableOpacity
-                        key={person.id}
+                        key={`resp-${person.id}`}
                         onPress={() => setResponsible(person.id)}
-                        className={`px-4 py-2 rounded-lg mr-2 border ${
-                          responsible === person.id
-                            ? "bg-primary border-primary"
-                            : "bg-background border-border"
-                        }`}
+                        className={`px-4 py-2 rounded-lg mr-2 border ${responsible === person.id
+                          ? "bg-primary border-primary"
+                          : "bg-background border-border"
+                          }`}
                       >
                         <Text className={`font-bold text-xs ${responsible === person.id ? "text-white" : "text-foreground"}`}>
-                          {person.name}
+                          {person.displayName || person.name || person.firstName || person.email}
                         </Text>
                       </TouchableOpacity>
                     ))}
+                  </ScrollView>
+                </View>
+
+                {/* Split Between (Divisão) */}
+                <View>
+                  <Text className="text-sm font-bold text-foreground mb-2">Dividir com: *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-1 pb-1">
+                    {housemates.map((person) => {
+                      const isSelected = splitUsersIds.includes(person.id);
+                      return (
+                        <TouchableOpacity
+                          key={`split-${person.id}`}
+                          onPress={() => {
+                            setsplitUsersIds(prev =>
+                              isSelected
+                                ? prev.filter(id => id !== person.id)
+                                : [...prev, person.id]
+                            );
+                          }}
+                          className={`px-4 py-2 rounded-lg mr-2 border ${isSelected
+                            ? "bg-primary border-primary"
+                            : "bg-background border-border"
+                            }`}
+                        >
+                          <Text className={`font-bold text-xs ${isSelected ? "text-white" : "text-foreground"}`}>
+                            {person.displayName || person.name || person.firstName || person.email}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </ScrollView>
                 </View>
 
@@ -268,18 +304,16 @@ export default function AddTransactionScreen() {
                   <View className="flex-row gap-2">
                     <TouchableOpacity
                       onPress={() => setDivisionType("equal")}
-                      className={`flex-1 flex-row items-center justify-center py-3 rounded-lg border ${
-                        divisionType === "equal" ? "bg-primary border-primary" : "bg-surface border-border"
-                      }`}
+                      className={`flex-1 flex-row items-center justify-center py-3 rounded-lg border ${divisionType === "equal" ? "bg-primary border-primary" : "bg-surface border-border"
+                        }`}
                     >
                       <MaterialIcons name="group" size={16} color={divisionType === "equal" ? "#fff" : colors.muted} className="mr-2" />
                       <Text className={`font-bold text-xs ${divisionType === "equal" ? "text-white" : "text-muted"}`}>Igual</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setDivisionType("manual")}
-                      className={`flex-1 flex-row items-center justify-center py-3 rounded-lg border ${
-                        divisionType === "manual" ? "bg-primary border-primary" : "bg-surface border-border"
-                      }`}
+                      className={`flex-1 flex-row items-center justify-center py-3 rounded-lg border ${divisionType === "manual" ? "bg-primary border-primary" : "bg-surface border-border"
+                        }`}
                     >
                       <MaterialIcons name="edit" size={16} color={divisionType === "manual" ? "#fff" : colors.muted} className="mr-2" />
                       <Text className={`font-bold text-xs ${divisionType === "manual" ? "text-white" : "text-muted"}`}>Manual</Text>
@@ -315,16 +349,14 @@ export default function AddTransactionScreen() {
                         <TouchableOpacity
                           key={freq}
                           onPress={() => setFrequency(freq)}
-                          className={`flex-1 py-3 rounded-lg items-center border ${
-                            frequency === freq
-                              ? "bg-primary border-primary"
-                              : "bg-background border-border"
-                          }`}
+                          className={`flex-1 py-3 rounded-lg items-center border ${frequency === freq
+                            ? "bg-primary border-primary"
+                            : "bg-background border-border"
+                            }`}
                         >
                           <Text
-                            className={`font-semibold text-xs ${
-                              frequency === freq ? "text-white" : "text-foreground"
-                            }`}
+                            className={`font-semibold text-xs ${frequency === freq ? "text-white" : "text-foreground"
+                              }`}
                           >
                             {labels[freq]}
                           </Text>
@@ -337,10 +369,22 @@ export default function AddTransactionScreen() {
                 <View>
                   <Text className="text-sm font-bold text-foreground mb-2">Data de Término (Opcional)</Text>
                   <TextInput
-                    placeholder="YYYY-MM-DD"
+                    placeholder="DD/MM/YYYY"
                     placeholderTextColor={colors.muted}
                     value={endDate}
-                    onChangeText={setEndDate}
+                    onChangeText={(text) => {
+                      let cleaned = text.replace(/\D/g, "");
+                      let formatted = cleaned;
+                      if (cleaned.length > 2) {
+                        formatted = cleaned.slice(0, 2) + "/" + cleaned.slice(2);
+                      }
+                      if (cleaned.length > 4) {
+                        formatted = formatted.slice(0, 5) + "/" + cleaned.slice(4, 8);
+                      }
+                      setEndDate(formatted);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={10}
                     editable={!loading}
                     className="bg-background border border-border rounded-lg px-3 py-3 text-foreground"
                   />
@@ -412,19 +456,18 @@ export default function AddTransactionScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               {currentCategories.map((cat) => (
                 <TouchableOpacity
-                  key={cat}
+                  key={cat.id}
                   onPress={() => {
-                    setCategory(cat);
+                    setCategoryId(cat.id);
                     setIsCategoryModalOpen(false);
                   }}
-                  className={`flex-row items-center justify-between py-4 px-4 border-b border-border ${
-                    category === cat ? "bg-primary bg-opacity-10 py-5 rounded-xl border-b-0 mb-1 mt-1" : ""
-                  }`}
+                  className={`flex-row items-center justify-between py-4 px-4 border-b border-border ${categoryId === cat.id ? "bg-primary bg-opacity-10 py-5 rounded-xl border-b-0 mb-1 mt-1" : ""
+                    }`}
                 >
-                  <Text className={`font-bold text-base ${category === cat ? "text-primary" : "text-foreground"}`}>
-                    {cat}
+                  <Text className={`font-bold text-base ${categoryId === cat.id ? "text-primary" : "text-foreground"}`}>
+                    {cat.name}
                   </Text>
-                  {category === cat && <MaterialIcons name="check-circle" size={24} color={colors.primary} />}
+                  {categoryId === cat.id && <MaterialIcons name="check-circle" size={24} color={colors.primary} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>

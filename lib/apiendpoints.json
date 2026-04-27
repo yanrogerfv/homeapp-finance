@@ -1,0 +1,988 @@
+[
+    {
+        "url": "/public/health",
+        "method": "GET",
+        "requiresAuth": false,
+        "parameters": [],
+        "responses": {
+            "204": null,
+            "500": null
+        }
+    },
+    {
+        "url": "/public/auth/register",
+        "method": "POST",
+        "requiresAuth": false,
+        "parameters": [],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "firstName": "string",
+                "lastName": "string",
+                "displayName": "string",
+                "email": "string",
+                "password": "string"
+            }
+        },
+        "responses": {
+            "201": {
+                "id": "string",
+                "aud": "string",
+                "role": "string",
+                "email": "string",
+                "email_confirmed_at": "string",
+                "phone": "string",
+                "confirmation_sent_at": "string",
+                "confirmed_at": "string",
+                "last_sign_in_at": "string",
+                "app_metadata": {
+                    "provider": "string",
+                    "providers": [
+                        "string"
+                    ]
+                },
+                "user_metadata": {
+                    "email": "string",
+                    "sub": "string",
+                    "role": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "display_name": "string",
+                    "email_verified": true,
+                    "phone_verified": true,
+                    "biometric_enabled": true
+                },
+                "identities": [
+                    {
+                        "id": "string",
+                        "provider": "string",
+                        "email": "string",
+                        "identity_id": "string",
+                        "user_id": "string",
+                        "identity_data": {
+                            "email": "string",
+                            "sub": "string",
+                            "role": "string",
+                            "first_name": "string",
+                            "last_name": "string",
+                            "display_name": "string",
+                            "email_verified": true,
+                            "phone_verified": true
+                        },
+                        "last_sign_in_at": "string",
+                        "created_at": "string",
+                        "updated_at": "string"
+                    }
+                ],
+                "created_at": "string",
+                "updated_at": "string",
+                "is_anonymous": true
+            },
+            "400": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/public/auth/login",
+        "method": "POST",
+        "requiresAuth": false,
+        "parameters": [],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "email": "string",
+                "password": "string"
+            }
+        },
+        "responses": {
+            "200": {
+                "access_token": "string",
+                "token_type": "string",
+                "expires_in": 0,
+                "refresh_token": "string",
+                "user": {
+                    "additionalProp1": {},
+                    "additionalProp2": {},
+                    "additionalProp3": {}
+                }
+            },
+            "400": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/reports/expense-report",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "categoryExpenses": [
+                    {
+                        "category": "string",
+                        "totalAmount": 0
+                    }
+                ],
+                "monthlyExpenses": [
+                    {
+                        "month": "string",
+                        "totalExpense": 0
+                    }
+                ],
+                "monthExpensesResume": {
+                    "monthTotalExpenses": 0,
+                    "biggestExpenseTitle": "string",
+                    "expenseStatus": "PENDING"
+                }
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/join",
+        "method": "POST",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "inviteCode",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "id": "string",
+                "name": "string",
+                "inviteCode": "string",
+                "adminId": "string",
+                "balance": 0,
+                "members": [
+                    {
+                        "id": "string",
+                        "firstName": "string",
+                        "lastName": "string",
+                        "displayName": "string",
+                        "email": "string",
+                        "role": "ADMIN",
+                        "status": "ACTIVE"
+                    }
+                ]
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/create",
+        "method": "POST",
+        "requiresAuth": true,
+        "parameters": [],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "name": "string"
+            }
+        },
+        "responses": {
+            "201": {
+                "id": "string",
+                "name": "string",
+                "inviteCode": "string",
+                "adminId": "string",
+                "balance": 0,
+                "members": [
+                    {
+                        "id": "string",
+                        "firstName": "string",
+                        "lastName": "string",
+                        "displayName": "string",
+                        "email": "string",
+                        "role": "ADMIN",
+                        "status": "ACTIVE"
+                    }
+                ]
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/balance",
+        "method": "PATCH",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "add",
+                "in": "query",
+                "required": false,
+                "schema": {
+                    "type": "number"
+                }
+            },
+            {
+                "name": "subtract",
+                "in": "query",
+                "required": false,
+                "schema": {
+                    "type": "number"
+                }
+            },
+            {
+                "name": "valueToAdd",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "number"
+                }
+            },
+            {
+                "name": "valueToSubtract",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "number"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "message": "string",
+                "newBalance": 0
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/resume",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "houseId": "string",
+                "inviteCode": "string",
+                "houseName": "string",
+                "balance": 0,
+                "pendingExpenses": {
+                    "amount": 0,
+                    "userPart": 0
+                },
+                "monthPaidExpenses": {
+                    "amount": 0,
+                    "quantityPaid": 0
+                },
+                "nextWeekExpenses": [
+                    {
+                        "id": "string",
+                        "title": "string",
+                        "dueDate": "2026-04-13",
+                        "amount": 0,
+                        "expenseStatus": "PENDING",
+                        "responsibleName": "string"
+                    }
+                ],
+                "usersDebits": [
+                    {
+                        "displayName": "string",
+                        "amount": 0
+                    }
+                ]
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/my-house",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "id": "string",
+                "name": "string",
+                "inviteCode": "string",
+                "adminId": "string",
+                "balance": 0,
+                "members": [
+                    {
+                        "id": "string",
+                        "firstName": "string",
+                        "lastName": "string",
+                        "displayName": "string",
+                        "email": "string",
+                        "role": "ADMIN",
+                        "status": "ACTIVE"
+                    }
+                ]
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/remove-member",
+        "method": "DELETE",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "userId",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "message": "string"
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "403": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/house/leave",
+        "method": "DELETE",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "message": "string"
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "status",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "enum": [
+                        "PENDING",
+                        "PAID"
+                    ]
+                }
+            },
+            {
+                "name": "month",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            },
+            {
+                "name": "year",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "integer",
+                    "format": "int32"
+                }
+            },
+            {
+                "name": "responsibleId",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                }
+            }
+        ],
+        "responses": {
+            "200": [
+                {
+                    "id": "string",
+                    "title": "string",
+                    "description": "string",
+                    "amount": 0,
+                    "status": "PENDING",
+                    "dueDate": "2026-04-13",
+                    "categoryName": "string",
+                    "responsible": {
+                        "id": "string",
+                        "displayName": "string"
+                    },
+                    "splits": [
+                        {
+                            "id": "string",
+                            "userId": "string",
+                            "userName": "string",
+                            "status": "PENDING",
+                            "amount": 0
+                        }
+                    ]
+                }
+            ],
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses",
+        "method": "POST",
+        "requiresAuth": true,
+        "parameters": [],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "title": "string",
+                "description": "string",
+                "amount": 0,
+                "categoryId": "string",
+                "dueDate": "2026-04-13",
+                "responsibleId": "string",
+                "splitUsersIds": [
+                    "string"
+                ]
+            }
+        },
+        "responses": {
+            "201": {
+                "id": "string",
+                "title": "string",
+                "description": "string",
+                "amount": 0,
+                "status": "PENDING",
+                "dueDate": "2026-04-13",
+                "categoryName": "string",
+                "responsible": {
+                    "id": "string",
+                    "displayName": "string"
+                },
+                "splits": [
+                    {
+                        "id": "string",
+                        "userId": "string",
+                        "userName": "string",
+                        "status": "PENDING",
+                        "amount": 0
+                    }
+                ]
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses/{id}/status",
+        "method": "PATCH",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "format": "uuid"
+                }
+            }
+        ],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "status": "PENDING"
+            }
+        },
+        "responses": {
+            "200": {
+                "id": "string",
+                "title": "string",
+                "description": "string",
+                "amount": 0,
+                "status": "PENDING",
+                "dueDate": "2026-04-13",
+                "categoryName": "string",
+                "responsible": {
+                    "id": "string",
+                    "displayName": "string"
+                },
+                "splits": [
+                    {
+                        "id": "string",
+                        "userId": "string",
+                        "userName": "string",
+                        "status": "PENDING",
+                        "amount": 0
+                    }
+                ]
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses/split/{id}/status",
+        "method": "PATCH",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "format": "uuid"
+                }
+            }
+        ],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "status": "PENDING"
+            }
+        },
+        "responses": {
+            "200": {
+                "id": "string",
+                "userId": "string",
+                "userName": "string",
+                "status": "PENDING",
+                "amount": 0
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses/{id}",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "format": "uuid"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "id": "string",
+                "title": "string",
+                "description": "string",
+                "amount": 0,
+                "status": "PENDING",
+                "dueDate": "2026-04-13",
+                "categoryName": "string",
+                "responsible": {
+                    "id": "string",
+                    "displayName": "string"
+                },
+                "splits": [
+                    {
+                        "id": "string",
+                        "userId": "string",
+                        "userName": "string",
+                        "status": "PENDING",
+                        "amount": 0
+                    }
+                ]
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses/{id}",
+        "method": "DELETE",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "format": "uuid"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "message": "string"
+            },
+            "400": {
+                "message": "string"
+            },
+            "401": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/expenses/categories",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": [
+                {
+                    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "name": "string"
+                }
+            ],
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/admin/auth/register/new-admin",
+        "method": "POST",
+        "requiresAuth": true,
+        "parameters": [],
+        "requestBody": {
+            "contentType": "application/json",
+            "example": {
+                "firstName": "string",
+                "lastName": "string",
+                "displayName": "string",
+                "email": "string",
+                "password": "string"
+            }
+        },
+        "responses": {
+            "201": {
+                "id": "string",
+                "aud": "string",
+                "role": "string",
+                "email": "string",
+                "email_confirmed_at": "string",
+                "phone": "string",
+                "confirmation_sent_at": "string",
+                "confirmed_at": "string",
+                "last_sign_in_at": "string",
+                "app_metadata": {
+                    "provider": "string",
+                    "providers": [
+                        "string"
+                    ]
+                },
+                "user_metadata": {
+                    "email": "string",
+                    "sub": "string",
+                    "role": "string",
+                    "first_name": "string",
+                    "last_name": "string",
+                    "display_name": "string",
+                    "email_verified": true,
+                    "phone_verified": true,
+                    "biometric_enabled": true
+                },
+                "identities": [
+                    {
+                        "id": "string",
+                        "provider": "string",
+                        "email": "string",
+                        "identity_id": "string",
+                        "user_id": "string",
+                        "identity_data": {
+                            "email": "string",
+                            "sub": "string",
+                            "role": "string",
+                            "first_name": "string",
+                            "last_name": "string",
+                            "display_name": "string",
+                            "email_verified": true,
+                            "phone_verified": true
+                        },
+                        "last_sign_in_at": "string",
+                        "created_at": "string",
+                        "updated_at": "string"
+                    }
+                ],
+                "created_at": "string",
+                "updated_at": "string",
+                "is_anonymous": true
+            },
+            "400": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/admin/user",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "id": "string",
+                "role": "string",
+                "email": "string",
+                "emailConfirmed": true,
+                "firstName": "string",
+                "lastName": "string",
+                "displayName": "string"
+            },
+            "400": {
+                "message": "string"
+            },
+            "404": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/admin/user/all",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "users": [
+                    {
+                        "id": "string",
+                        "aud": "string",
+                        "role": "string",
+                        "email": "string",
+                        "email_confirmed_at": "string",
+                        "phone": "string",
+                        "confirmation_sent_at": "string",
+                        "confirmed_at": "string",
+                        "last_sign_in_at": "string",
+                        "app_metadata": {
+                            "provider": "string",
+                            "providers": [
+                                "string"
+                            ]
+                        },
+                        "user_metadata": {
+                            "email": "string",
+                            "sub": "string",
+                            "role": "string",
+                            "first_name": "string",
+                            "last_name": "string",
+                            "display_name": "string",
+                            "email_verified": true,
+                            "phone_verified": true,
+                            "biometric_enabled": true
+                        },
+                        "identities": [
+                            {
+                                "id": "string",
+                                "provider": "string",
+                                "email": "string",
+                                "identity_id": "string",
+                                "user_id": "string",
+                                "identity_data": {
+                                    "email": "string",
+                                    "sub": "string",
+                                    "role": "string",
+                                    "first_name": "string",
+                                    "last_name": "string",
+                                    "display_name": "string",
+                                    "email_verified": true,
+                                    "phone_verified": true
+                                },
+                                "last_sign_in_at": "string",
+                                "created_at": "string",
+                                "updated_at": "string"
+                            }
+                        ],
+                        "created_at": "string",
+                        "updated_at": "string",
+                        "is_anonymous": true
+                    }
+                ]
+            },
+            "401": {
+                "message": "string"
+            },
+            "403": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/user/biometric/status",
+        "method": "PATCH",
+        "requiresAuth": true,
+        "parameters": [
+            {
+                "name": "isEnabled",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "boolean"
+                }
+            }
+        ],
+        "responses": {
+            "200": {
+                "message": "string",
+                "enabled": true
+            },
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    },
+    {
+        "url": "/user/me",
+        "method": "GET",
+        "requiresAuth": true,
+        "parameters": [],
+        "responses": {
+            "200": {
+                "id": "string",
+                "role": "string",
+                "email": "string",
+                "emailConfirmed": true,
+                "firstName": "string",
+                "lastName": "string",
+                "displayName": "string",
+                "biometricEnabled": true
+            },
+            "401": {
+                "message": "string"
+            },
+            "500": {
+                "message": "string"
+            }
+        }
+    }
+]

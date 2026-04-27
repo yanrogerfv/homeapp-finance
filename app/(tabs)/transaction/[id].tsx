@@ -167,10 +167,10 @@ export default function TransactionDetailScreen() {
                     {/* Timestamps */}
                     <View className="bg-surface rounded-lg p-4 gap-2">
                         <Text className="text-xs text-muted">
-                            Created {new Date(transaction.createdAt).toLocaleDateString("pt-BR")}
+                            Created {transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString("pt-BR") : "N/A"}
                         </Text>
                         <Text className="text-xs text-muted">
-                            Updated {new Date(transaction.updatedAt).toLocaleDateString("pt-BR")}
+                            Updated {transaction.updatedAt ? new Date(transaction.updatedAt).toLocaleDateString("pt-BR") : "N/A"}
                         </Text>
                     </View>
 

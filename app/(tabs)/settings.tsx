@@ -7,7 +7,9 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
-import { fetchHousemates, leaveHouse } from "@/lib/api";
+import { leaveHouse, removeHouseMember } from "@/lib/api";
+import { apiClient } from "@/lib/apiClient";
+import * as LocalAuthentication from "expo-local-authentication";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -18,10 +20,19 @@ export default function SettingsScreen() {
   const [biometricEnabled, setBiometricEnabled] = useState(
     authState.user?.biometricEnabled || false
   );
-  const [housemates, setHousemates] = useState<any[]>([]);
+  const [houseDetails, setHouseDetails] = useState<any>(null);
+
+  const fetchHouse = async () => {
+    try {
+      const res = await apiClient.get('/house/my-house');
+      setHouseDetails(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    fetchHousemates().then(setHousemates).catch(console.error);
+    fetchHouse();
   }, []);
 
   const handleToggleTheme = () => {
@@ -35,39 +46,29 @@ export default function SettingsScreen() {
       return;
     }
 
-    Alert.prompt(
-      biometricEnabled ? "Desativar Biometria" : "Ativar Biometria",
-      "Confirme sua senha para continuar",
-      [
-        { text: "Cancelar", onPress: () => { } },
-        {
-          text: "Confirmar",
-          onPress: async (password: string | undefined) => {
-            if (!password) {
-              Alert.alert("Erro", "Senha obrigatória");
-              return;
-            }
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: biometricEnabled ? "Confirme para desativar" : "Confirme para ativar",
+        cancelLabel: "Cancelar",
+        disableDeviceFallback: false,
+      });
 
-            try {
-              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              if (biometricEnabled) {
-                await disableBiometric(password);
-                setBiometricEnabled(false);
-                Alert.alert("Sucesso", "Autenticação biométrica desativada");
-              } else {
-                await enableBiometric(password);
-                setBiometricEnabled(true);
-                Alert.alert("Sucesso", "Autenticação biométrica ativada");
-              }
-            } catch (error) {
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert("Erro", error instanceof Error ? error.message : "Falha ao atualizar");
-            }
-          },
-        },
-      ],
-      "secure-text"
-    );
+      if (result.success) {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (biometricEnabled) {
+          await disableBiometric();
+          setBiometricEnabled(false);
+          Alert.alert("Sucesso", "Autenticação biométrica desativada");
+        } else {
+          await enableBiometric();
+          setBiometricEnabled(true);
+          Alert.alert("Sucesso", "Autenticação biométrica ativada");
+        }
+      }
+    } catch (error) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro", "Falha na autenticação");
+    }
   };
 
   const handleLeaveHouse = () => {
@@ -83,7 +84,7 @@ export default function SettingsScreen() {
             try {
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
               // In a real app we pass the house ID and user ID
-              await leaveHouse("current_house", authState.user?.email || "");
+              await leaveHouse();
               Alert.alert("Sucesso", "Você saiu da casa. Redirecionando...");
               // Typically logic to clean context and go back to a 'Choose House' screen goes here
             } catch (error) {
@@ -134,7 +135,7 @@ export default function SettingsScreen() {
       className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl bg-surface border border-border`}
     >
       <View className="flex-row items-center gap-4 flex-1">
-        <View className="w-10 h-10 rounded-xl bg-primary bg-opacity-10 items-center justify-center">
+        <View className="w-10 h-10 rounded-xl items-center justify-center">
           <MaterialIcons name={icon as any} size={22} color={colors.primary} />
         </View>
         <View className="flex-1">
@@ -145,6 +146,10 @@ export default function SettingsScreen() {
       {rightElement}
     </TouchableOpacity>
   );
+
+  const isOwner = houseDetails?.owner?.id === authState.user?.id;
+  const members = houseDetails?.members || [];
+  const hasOtherMembers = members.length > 1;
 
   return (
     <ScreenContainer className="bg-background">
@@ -211,43 +216,81 @@ export default function SettingsScreen() {
             <SettingRow
               icon="info-outline"
               title="Versão do App"
-              subtitle="2.0.0"
+              subtitle="0.1.0"
               rightElement={<Text className="text-muted font-bold">Mais sobre</Text>}
             />
           </View>
 
           {/* House Settings Section */}
-          <View className="border border-border rounded-2xl">
-            <Text className=" font-bold text-lg p-4 border-b border-border">Participantes da Casa</Text>
+          {houseDetails && (
+            <View className="border border-border rounded-2xl overflow-hidden">
+              <View className="p-4 border-b border-border bg-surface flex-row justify-between items-center">
+                <Text className="font-bold text-lg text-foreground">Minha Casa</Text>
+              </View>
 
-            <View className="p-6">
-              <Text className="text-sm text-gray-500 mb-4">Membros da Casa ({housemates.length})</Text>
-              {housemates.map((member) => (
+              <View className="p-5">
+                <Text className="text-foreground font-bold text-base mb-1">{houseDetails.name}</Text>
 
-                <View key={member.id} className="flex-row items-center gap-3 mb-3 px-1">
-                  <Image source={{ uri: member.avatar }} className="w-10 h-10 rounded-full border border-border" />
-                  <View>
-                    <Text className="font-medium text-text">{member.name} {member.id === authState.user?.id && '(Você)'}</Text>
-                    <Text className="text-xs text-text">{member.email}</Text>
+                {isOwner && (
+                  <View className="mt-3 bg-primary bg-opacity-10 border border-primary p-4 rounded-xl items-center">
+                    <Text className="text-muted text-xs font-bold uppercase tracking-widest mb-1">Código de Convite</Text>
+                    <Text className="text-primary font-extrabold text-2xl tracking-widest">{houseDetails.code}</Text>
+                    <Text className="text-muted text-xs mt-2 text-center">Compartilhe este código para convidar outros moradores!</Text>
                   </View>
-                  {/* {member.id !== user?.id && (
-                    <button 
-                      onClick={() => handleRemoveMember(member.id, member.name)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Remover morador"
-                    >
-                      <UserMinus size={20} />
-                    </button>
-                  )} */}
-                </View>
+                )}
 
-                // <View key={person.id} className="flex-row items-center gap-3 mb-3 px-1">
-                //   <Image source={{ uri: person.avatar }} className="w-10 h-10 rounded-full border border-border" />
-                //   <Text className="text-foreground font-semibold text-sm flex-1">{person.name}</Text>
-                // </View>
-              ))}
+                <View className="mt-6">
+                  <Text className="text-sm text-foreground font-bold mb-4 uppercase tracking-widest">
+                    Membros da Casa ({members.length})
+                  </Text>
+                  {members.map((member: any) => (
+                    <View key={member.id} className="flex-row items-center gap-3 mb-3 p-3 bg-surface border border-border rounded-xl">
+                      <View className="w-10 h-10 rounded-2xl border border-gray-600 items-center justify-center">
+                        <Text className="text-primary font-bold text-lg">{member.name ? member.name[0] : member.displayName ? member.displayName[0] : 'U'}</Text>
+                      </View>
+                      <View className="flex-1">
+                        <Text className="font-bold text-foreground">
+                          {member.name || member.displayName} {member.id === authState.user?.id && '(Você)'}
+                        </Text>
+                        {member.id === houseDetails.owner?.id && (
+                          <Text className="text-xs text-primary font-bold">Proprietário(a)</Text>
+                        )}
+                      </View>
+                      {isOwner && member.id !== authState.user?.id && (
+                        <TouchableOpacity
+                          onPress={async () => {
+                            Alert.alert(
+                              "Remover Morador",
+                              "Tem certeza que deseja remover este morador da casa?",
+                              [
+                                { text: "Cancelar", style: "cancel" },
+                                {
+                                  text: "Remover",
+                                  style: "destructive",
+                                  onPress: async () => {
+                                    try {
+                                      await removeHouseMember(member.id);
+                                      fetchHouse();
+                                      Alert.alert("Sucesso", "Morador removido.");
+                                    } catch (e) {
+                                      Alert.alert("Erro", "Não foi possível remover.");
+                                    }
+                                  }
+                                }
+                              ]
+                            );
+                          }}
+                          className="p-2"
+                        >
+                          <MaterialIcons name="person-remove" size={22} color={colors.error} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
             </View>
-          </View>
+          )}
 
           <TouchableOpacity
             onPress={handleLeaveHouse}
