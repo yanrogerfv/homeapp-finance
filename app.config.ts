@@ -133,6 +133,11 @@ const config: ExpoConfig = {
     reactCompiler: true,
     tsconfigPaths: true,
   },
+  extra: {
+    eas: {
+      projectId: "31b6d2cc-d5f2-451e-b0ee-8f466f32d6d9"
+    }
+  },
 };
 
 // Export the config with proper typing
