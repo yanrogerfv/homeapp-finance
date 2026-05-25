@@ -139,11 +139,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const getTransactionsAction = async (month?: number, year?: number, responsibleId?: string) => {
     try {
-      const currentMonth = month || new Date().getMonth() + 1;
-      const currentYear = year || new Date().getFullYear();
+      dispatch({ type: "SET_TRANSACTIONS", payload: [] });
+      dispatch({ type: "SET_LOADING", payload: true });
 
-      let urlPending = `/expenses?status=PENDING&month=${currentMonth}&year=${currentYear}`;
-      let urlPaid = `/expenses?status=PAID&month=${currentMonth}&year=${currentYear}`;
+      let urlPending = `/expenses?status=PENDING`;
+      let urlPaid = `/expenses?status=PAID`;
+      
+      if (month || year) {
+        const m = month || new Date().getMonth() + 1;
+        const y = year || new Date().getFullYear();
+        urlPending += `&month=${m}&year=${y}`;
+        urlPaid += `&month=${m}&year=${y}`;
+      }
       if (responsibleId && responsibleId !== "all") {
         urlPending += `&responsibleId=${responsibleId}`;
         urlPaid += `&responsibleId=${responsibleId}`;

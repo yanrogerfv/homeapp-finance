@@ -95,10 +95,13 @@ export default function TabLayout() {
         })}
       />
       <Tabs.Screen
-        name="shopping"
+        // name="shopping"
+        name="reports"
         options={{
-          title: "Compras",
-          tabBarIcon: ({ color }) => <MaterialIcons name="shopping-cart" size={26} color={color} />,
+          // title: "Compras",
+          // tabBarIcon: ({ color }) => <MaterialIcons name="shopping-cart" size={26} color={color} />,
+          title: "Relatórios",
+          tabBarIcon: ({ color }) => <MaterialIcons name="bar-chart" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -108,8 +111,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <MaterialIcons name="settings" size={26} color={color} />,
         }}
       />
-      
+
       {/* Hide the old routes from the bottom tab bar */}
+      <Tabs.Screen
+        name="shopping"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="add-transaction"
         options={{
