@@ -49,7 +49,7 @@ export default function TransactionDetailScreen() {
     }
 
     const mySplit = transaction.splits?.find(s => s.userId === authState.user?.id);
-    const isPending = transaction.status?.toUpperCase() === "PENDING" || mySplit?.status?.toUpperCase() === "PENDING";
+    const isPending = transaction.status?.toUpperCase() === "PENDING" && (!mySplit || mySplit.status?.toUpperCase() === "PENDING");
 
     const handleMarkAsPaid = async () => {
         const executePayment = async () => {
@@ -59,10 +59,13 @@ export default function TransactionDetailScreen() {
                     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 }
 
-                const splitId = mySplit ? mySplit.id : transaction.id;
-
-                // Chamada exata como na collection do Postman
-                await apiClient.patch(`/expenses/${transaction.id}/status`, { status: "PAID" });
+                // Se houver um split para o usuário atual, atualiza o split dele.
+                // Caso contrário, ou se for uma despesa geral, atualiza a despesa inteira.
+                if (mySplit && transaction.status?.toUpperCase() === "PENDING") {
+                    await apiClient.patch(`/expenses/split/${mySplit.id}/status`, { status: "PAID" });
+                } else {
+                    await apiClient.patch(`/expenses/${transaction.id}/status`, { status: "PAID" });
+                }
 
                 // Recarrega as transações do backend para ter a certeza do estado atualizado
                 await getTransactions();

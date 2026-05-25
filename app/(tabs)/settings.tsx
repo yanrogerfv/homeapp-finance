@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, TouchableOpacity, Alert, Switch, Image } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, Alert, Switch, Image, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
@@ -72,48 +72,89 @@ export default function SettingsScreen() {
   };
 
   const handleLeaveHouse = () => {
-    Alert.alert(
-      "Sair da Casa",
-      "ATENÇÃO: Você perderá o acesso às finanças desta casa. Deseja mesmo sair?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sair",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              // In a real app we pass the house ID and user ID
-              await leaveHouse();
-              Alert.alert("Sucesso", "Você saiu da casa. Redirecionando...");
-              // Typically logic to clean context and go back to a 'Choose House' screen goes here
-            } catch (error) {
-              Alert.alert("Erro", "Não foi possível sair no momento.");
+    const executeLeave = async () => {
+      try {
+        if (Platform.OS !== 'web') {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        }
+        await leaveHouse();
+        
+        if (Platform.OS === 'web') {
+          window.alert("Você saiu da casa.");
+          router.replace("/(auth)/house-setup");
+        } else {
+          Alert.alert("Sucesso", "Você saiu da casa.", [
+            {
+              text: "OK",
+              onPress: () => {
+                router.replace("/(auth)/house-setup");
+              }
             }
+          ]);
+        }
+      } catch (error) {
+        if (Platform.OS === 'web') {
+          window.alert("Não foi possível sair no momento.");
+        } else {
+          Alert.alert("Erro", "Não foi possível sair no momento.");
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm("ATENÇÃO: Você perderá o acesso às finanças desta casa. Deseja mesmo sair?");
+      if (confirmed) {
+        executeLeave();
+      }
+    } else {
+      Alert.alert(
+        "Sair da Casa",
+        "ATENÇÃO: Você perderá o acesso às finanças desta casa. Deseja mesmo sair?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Sair",
+            style: "destructive",
+            onPress: executeLeave,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleLogout = () => {
-    Alert.alert("Terminar Sessão", "Tem certeza que deseja sair da sua conta?", [
-      { text: "Cancelar", onPress: () => { } },
-      {
-        text: "Sair",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            await signOut();
-            const authPath: any = "/(auth)";
-            router.replace(authPath);
-          } catch (error) {
-            Alert.alert("Erro", "Falha ao terminar sessão");
-          }
+    const executeLogout = async () => {
+      try {
+        if (Platform.OS !== 'web') {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        await signOut();
+        const authPath: any = "/(auth)";
+        router.replace(authPath);
+      } catch (error) {
+        if (Platform.OS === 'web') {
+          window.alert("Falha ao terminar sessão");
+        } else {
+          Alert.alert("Erro", "Falha ao terminar sessão");
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm("Tem certeza que deseja sair da sua conta?");
+      if (confirmed) {
+        executeLogout();
+      }
+    } else {
+      Alert.alert("Terminar Sessão", "Tem certeza que deseja sair da sua conta?", [
+        { text: "Cancelar", onPress: () => { } },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: executeLogout,
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const SettingRow = ({

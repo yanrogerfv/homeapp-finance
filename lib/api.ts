@@ -63,3 +63,30 @@ export async function updateHouseBalance(valueToAdd: number, valueToSubtract: nu
     const res = await apiClient.patch(`/house/balance?valueToAdd=${valueToAdd}&valueToSubtract=${valueToSubtract}`);
     return res.data;
 }
+
+export interface CategoryExpenseReportData {
+  category: string;
+  totalAmount: number;
+}
+
+export interface MonthExpensesReportData {
+  month: string;
+  totalExpense: number;
+}
+
+export interface MonthExpensesResume {
+  monthTotalExpenses: number;
+  biggestExpenseTitle: string;
+  expenseStatus: string;
+}
+
+export interface ExpensesReportResponse {
+  categoryExpenses: CategoryExpenseReportData[];
+  monthlyExpenses: MonthExpensesReportData[];
+  monthExpensesResume: MonthExpensesResume;
+}
+
+export async function fetchExpenseReport(): Promise<ExpensesReportResponse> {
+  const res = await apiClient.get('/reports/expense-report');
+  return res.data;
+}

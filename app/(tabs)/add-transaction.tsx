@@ -117,6 +117,21 @@ export default function AddTransactionScreen() {
 
       await addTransaction(payload);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Limpar todos os campos
+      setAmount("");
+      setTitle("");
+      setCategoryId("");
+      const d = new Date();
+      setDate(`${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`);
+      setIsPeriodic(false);
+      setFrequency("monthly");
+      setEndDate("");
+      setNotes("");
+      setResponsible("");
+      setDivisionType("equal");
+      setsplitUsersIds(housemates.map((h: any) => h.id));
+
       router.back();
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -461,10 +476,11 @@ export default function AddTransactionScreen() {
                     setCategoryId(cat.id);
                     setIsCategoryModalOpen(false);
                   }}
-                  className={`flex-row items-center justify-between py-4 px-4 border-b border-border ${categoryId === cat.id ? "bg-primary bg-opacity-10 py-5 rounded-xl border-b-0 mb-1 mt-1" : ""
+                  style={{ backgroundColor: categoryId === cat.id ? colors.primary + '1A' : 'transparent' }}
+                  className={`flex-row items-center justify-between py-4 px-4 border-border ${categoryId === cat.id ? "py-5 rounded-xl mb-1 mt-1" : "border-b"
                     }`}
                 >
-                  <Text className={`font-bold text-base ${categoryId === cat.id ? "text-primary" : "text-foreground"}`}>
+                  <Text style={{ color: categoryId === cat.id ? colors.primary : colors.foreground }} className="font-bold text-base">
                     {cat.name}
                   </Text>
                   {categoryId === cat.id && <MaterialIcons name="check-circle" size={24} color={colors.primary} />}
