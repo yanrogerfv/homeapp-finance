@@ -19,6 +19,26 @@ import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
 import { fetchHousemates } from "@/lib/api";
 
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+const parseDateString = (str: string): Date | null => {
+  if (!str) return null;
+  const parts = str.split("/");
+  if (parts.length !== 3) return null;
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1; // 0-indexed
+  const year = parseInt(parts[2], 10);
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+  return new Date(year, month, day);
+};
+
+const formatDateString = (d: Date): string => {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+};
+
 export default function AddTransactionScreen() {
   const router = useRouter();
   const { type: transactionType } = useLocalSearchParams();
@@ -44,6 +64,11 @@ export default function AddTransactionScreen() {
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Date Picker Modal States
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [pickerField, setPickerField] = useState<"date" | "endDate">("date");
+  const [pickerDate, setPickerDate] = useState(() => new Date());
+
   // Expense/House fields
   const [responsible, setResponsible] = useState("");
   const [divisionType, setDivisionType] = useState<"equal" | "manual">("equal");
@@ -52,6 +77,69 @@ export default function AddTransactionScreen() {
   const [splitUsersIds, setsplitUsersIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
+  const handleDaySelect = (day: number) => {
+    const selected = new Date(pickerDate.getFullYear(), pickerDate.getMonth(), day);
+    const formatted = formatDateString(selected);
+
+    if (pickerField === "date") {
+      setDate(formatted);
+    } else {
+      setEndDate(formatted);
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(console.error);
+    setIsDatePickerOpen(false);
+  };
+
+  const handlePrevMonth = () => {
+    setPickerDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(console.error);
+  };
+
+  const handleNextMonth = () => {
+    setPickerDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(console.error);
+  };
+
+  const handleSelectToday = () => {
+    const today = new Date();
+    const formatted = formatDateString(today);
+
+    if (pickerField === "date") {
+      setDate(formatted);
+    } else {
+      setEndDate(formatted);
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(console.error);
+    setIsDatePickerOpen(false);
+  };
+
+  const handleClearDate = () => {
+    if (pickerField === "endDate") {
+      setEndDate("");
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(console.error);
+    setIsDatePickerOpen(false);
+  };
+
+  const pickerYear = pickerDate.getFullYear();
+  const pickerMonth = pickerDate.getMonth();
+
+  const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
+  const firstDayIndex = new Date(pickerYear, pickerMonth, 1).getDay(); // 0 = Sunday, 1 = Monday...
+
+  const daysArray = [];
+  for (let i = 0; i < firstDayIndex; i++) {
+    daysArray.push(null);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    daysArray.push(i);
+  }
+
+  const currentVal = pickerField === "date" ? date : endDate;
+  const parsedCurrent = parseDateString(currentVal);
 
   useEffect(() => {
     fetchHousemates().then(hm => {
@@ -235,26 +323,21 @@ export default function AddTransactionScreen() {
             {/* Date */}
             <View>
               <Text className="text-sm font-bold text-foreground mb-2">Data *</Text>
-              <TextInput
-                placeholder="DD/MM/YYYY"
-                placeholderTextColor={colors.muted}
-                value={date}
-                onChangeText={(text) => {
-                  let cleaned = text.replace(/\D/g, "");
-                  let formatted = cleaned;
-                  if (cleaned.length > 2) {
-                    formatted = cleaned.slice(0, 2) + "/" + cleaned.slice(2);
-                  }
-                  if (cleaned.length > 4) {
-                    formatted = formatted.slice(0, 5) + "/" + cleaned.slice(4, 8);
-                  }
-                  setDate(formatted);
+              <TouchableOpacity
+                onPress={() => {
+                  setPickerField("date");
+                  const parsed = parseDateString(date) || new Date();
+                  setPickerDate(parsed);
+                  setIsDatePickerOpen(true);
                 }}
-                keyboardType="numeric"
-                maxLength={10}
-                editable={!loading}
-                className="bg-surface border border-border rounded-xl px-4 py-3 text-foreground font-semibold"
-              />
+                disabled={loading}
+                className="bg-surface border border-border rounded-xl px-4 py-3 flex-row justify-between items-center"
+              >
+                <Text className="text-foreground font-semibold text-base">
+                  {date}
+                </Text>
+                <MaterialIcons name="event" size={20} color={colors.muted} />
+              </TouchableOpacity>
             </View>
 
             {/* EXPENSE ONLY FIELDS */}
@@ -383,26 +466,21 @@ export default function AddTransactionScreen() {
 
                 <View>
                   <Text className="text-sm font-bold text-foreground mb-2">Data de Término (Opcional)</Text>
-                  <TextInput
-                    placeholder="DD/MM/YYYY"
-                    placeholderTextColor={colors.muted}
-                    value={endDate}
-                    onChangeText={(text) => {
-                      let cleaned = text.replace(/\D/g, "");
-                      let formatted = cleaned;
-                      if (cleaned.length > 2) {
-                        formatted = cleaned.slice(0, 2) + "/" + cleaned.slice(2);
-                      }
-                      if (cleaned.length > 4) {
-                        formatted = formatted.slice(0, 5) + "/" + cleaned.slice(4, 8);
-                      }
-                      setEndDate(formatted);
+                  <TouchableOpacity
+                    onPress={() => {
+                      setPickerField("endDate");
+                      const parsed = parseDateString(endDate) || new Date();
+                      setPickerDate(parsed);
+                      setIsDatePickerOpen(true);
                     }}
-                    keyboardType="numeric"
-                    maxLength={10}
-                    editable={!loading}
-                    className="bg-background border border-border rounded-lg px-3 py-3 text-foreground"
-                  />
+                    disabled={loading}
+                    className="bg-background border border-border rounded-lg px-3 py-3 flex-row justify-between items-center"
+                  >
+                    <Text className={`font-semibold text-base ${endDate ? "text-foreground" : "text-muted"}`}>
+                      {endDate || "DD/MM/YYYY"}
+                    </Text>
+                    <MaterialIcons name="event" size={18} color={colors.muted} />
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -487,6 +565,106 @@ export default function AddTransactionScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Selection Modal */}
+      <Modal
+        visible={isDatePickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDatePickerOpen(false)}
+      >
+        <View className="flex-1 justify-end bg-black bg-opacity-60">
+          <View className="bg-background rounded-t-3xl border-t border-border pt-5 pb-10 px-5 shadow-2xl">
+            {/* Header: Title & Close */}
+            <View className="flex-row items-center justify-between mb-4 px-2">
+              <Text className="text-foreground font-bold text-xl">
+                {pickerField === "date" ? "Selecionar Data" : "Selecionar Data de Término"}
+              </Text>
+              <TouchableOpacity onPress={() => setIsDatePickerOpen(false)} className="p-2 bg-surface rounded-full">
+                <MaterialIcons name="close" size={24} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Month & Year Navigation */}
+            <View className="flex-row items-center justify-between px-2 mb-4 bg-surface rounded-xl py-2 border border-border">
+              <TouchableOpacity onPress={handlePrevMonth} className="p-2">
+                <MaterialIcons name="chevron-left" size={28} color={colors.foreground} />
+              </TouchableOpacity>
+
+              <Text className="text-foreground font-bold text-base">
+                {MONTH_NAMES[pickerMonth]} de {pickerYear}
+              </Text>
+
+              <TouchableOpacity onPress={handleNextMonth} className="p-2">
+                <MaterialIcons name="chevron-right" size={28} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Weekdays Row */}
+            <View className="flex-row mb-2">
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((dayName) => (
+                <View key={dayName} style={{ width: "14.28%" }} className="items-center py-1">
+                  <Text className="text-muted font-bold text-xs uppercase">{dayName}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Days Grid */}
+            <View className="flex-row flex-wrap mb-6">
+              {daysArray.map((day, idx) => {
+                if (day === null) {
+                  return <View key={`empty-${idx}`} style={{ width: "14.28%", aspectRatio: 1 }} />;
+                }
+
+                const isSelected = parsedCurrent &&
+                  parsedCurrent.getDate() === day &&
+                  parsedCurrent.getMonth() === pickerMonth &&
+                  parsedCurrent.getFullYear() === pickerYear;
+
+                return (
+                  <TouchableOpacity
+                    key={`day-${day}`}
+                    onPress={() => handleDaySelect(day)}
+                    style={{ width: "14.28%", aspectRatio: 1 }}
+                    className="justify-center items-center"
+                  >
+                    <View
+                      className={`w-9 h-9 rounded-full justify-center items-center ${isSelected ? "bg-primary" : ""
+                        }`}
+                    >
+                      <Text
+                        className={`font-semibold text-sm ${isSelected ? "text-white" : "text-foreground"
+                          }`}
+                      >
+                        {day}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Bottom Actions */}
+            <View className="flex-row gap-4 px-2">
+              <TouchableOpacity
+                onPress={handleSelectToday}
+                className="flex-1 bg-surface border border-border rounded-xl py-3.5 items-center justify-center"
+              >
+                <Text className="text-foreground font-bold text-sm">Hoje</Text>
+              </TouchableOpacity>
+
+              {pickerField === "endDate" && endDate ? (
+                <TouchableOpacity
+                  onPress={handleClearDate}
+                  className="flex-1 bg-error bg-opacity-10 border border-error rounded-xl py-3.5 items-center justify-center"
+                >
+                  <Text className="text-error font-bold text-sm">Limpar</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
         </View>
       </Modal>
