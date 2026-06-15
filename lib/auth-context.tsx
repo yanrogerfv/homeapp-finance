@@ -119,10 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token) {
           const res = await apiClient.get('/user/me');
           let user: User = res.data;
-          
-          const biometricEnabled = await getSecureToken("biometric_enabled");
+
           const savedEmail = await getSecureToken("user_email");
-          
+
           if (!user.email && savedEmail) {
             user.email = savedEmail;
           }
@@ -131,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             type: "RESTORE_TOKEN",
             payload: {
               user,
-              biometricEnabled: biometricEnabled === "true",
+              biometricEnabled: user.biometricEnabled ?? false,
             },
           });
         } else {
@@ -228,6 +227,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
 
     enableBiometric: async () => {
+      try {
+        await apiClient.patch('/user/biometric/status', { biometricEnabled: true });
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Falha ao ativar biometria");
+      }
       await setSecureToken("biometric_enabled", "true");
       if (state.user) {
         dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: true } });
@@ -235,6 +239,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
 
     disableBiometric: async () => {
+      try {
+        await apiClient.patch('/user/biometric/status', { biometricEnabled: false });
+      } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Falha ao desativar biometria");
+      }
       await setSecureToken("biometric_enabled", "false");
       if (state.user) {
         dispatch({ type: "UPDATE_USER", payload: { ...state.user, biometricEnabled: false } });
@@ -247,18 +256,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token) {
           const res = await apiClient.get('/user/me');
           let user: User = res.data;
-          const biometricEnabled = await getSecureToken("biometric_enabled");
           const savedEmail = await getSecureToken("user_email");
-          
+
           if (!user.email && savedEmail) {
             user.email = savedEmail;
           }
-          
+
           dispatch({
             type: "RESTORE_TOKEN",
             payload: {
               user,
-              biometricEnabled: biometricEnabled === "true",
+              biometricEnabled: user.biometricEnabled ?? false,
             },
           });
         } else {
