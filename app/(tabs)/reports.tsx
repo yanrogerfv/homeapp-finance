@@ -8,12 +8,14 @@ import { LineChart, PieChart } from "react-native-chart-kit";
 import { useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import { fetchExpenseReport, ExpensesReportResponse } from "@/lib/api";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 const screenWidth = Dimensions.get("window").width;
 
 export default function ReportsScreen() {
   const { colorScheme } = useThemeContext();
   const colors = SchemeColors[colorScheme];
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<ExpensesReportResponse | null>(null);
@@ -116,7 +118,7 @@ export default function ReportsScreen() {
   return (
     <ScreenContainer className="bg-background">
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: tabBarHeight + 16 }}
         className="px-4 py-6"
         showsVerticalScrollIndicator={false}
       >

@@ -22,7 +22,7 @@ export default function HouseSetupScreen() {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
-      await apiClient.post(`/house/join?inviteCode=${inviteCode}`);
+      await apiClient.post('/house/join', { inviteCode });
       
       router.replace("/(tabs)");
     } catch (error: any) {

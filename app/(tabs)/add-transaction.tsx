@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
 import { fetchHousemates } from "@/lib/api";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -46,6 +47,7 @@ export default function AddTransactionScreen() {
   const { colorScheme } = useThemeContext();
   const colors = SchemeColors[colorScheme];
 
+  const tabBarHeight = useBottomTabBarHeight();
   const [type, setType] = useState<"income" | "expense">(
     (transactionType as "income" | "expense") || "expense"
   );
@@ -231,7 +233,7 @@ export default function AddTransactionScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6" keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: tabBarHeight + 16 }} className="px-4 py-6" keyboardShouldPersistTaps="handled">
         <View className="gap-6 pb-12">
 
           {/* Header & Type Toggle */}

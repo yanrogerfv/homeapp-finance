@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics";
 import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
 import { leaveHouse, removeHouseMember, updateHouseBalance } from "@/lib/api";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { apiClient } from "@/lib/apiClient";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -17,6 +18,7 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useThemeContext();
   const colors = SchemeColors[colorScheme];
 
+  const tabBarHeight = useBottomTabBarHeight();
   const [biometricEnabled, setBiometricEnabled] = useState(
     authState.user?.biometricEnabled || false
   );
@@ -258,7 +260,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }} className="px-4 py-6">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: tabBarHeight + 16 }} className="px-4 py-6">
         <View className="gap-6">
 
           {/* Header */}
