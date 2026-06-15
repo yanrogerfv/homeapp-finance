@@ -15,12 +15,20 @@ import {
   initialWindowMetrics,
 } from "react-native-safe-area-context";
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { AuthProvider } from "@/lib/auth-context";
 import { FinanceProvider } from "@/lib/finance-context";
 import { ShoppingProvider } from "@/lib/shopping-context";
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* preventAutoHideAsync may throw on web, ignore */
+});
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -30,6 +38,10 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    ...MaterialIcons.font,
+  });
+
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
 
@@ -80,6 +92,18 @@ export default function RootLayout() {
       },
     };
   }, [initialInsets, initialFrame]);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {
+        /* ignore */
+      });
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>

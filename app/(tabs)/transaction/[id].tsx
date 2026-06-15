@@ -61,7 +61,7 @@ export default function TransactionDetailScreen() {
 
                 // Se houver um split para o usuário atual, atualiza o split dele.
                 // Caso contrário, ou se for uma despesa geral, atualiza a despesa inteira.
-                if (mySplit && transaction.status?.toUpperCase() === "PENDING") {
+                if (mySplit && mySplit.status?.toUpperCase() === "PENDING") {
                     await apiClient.patch(`/expenses/split/${mySplit.id}/status`, { status: "PAID" });
                 } else {
                     await apiClient.patch(`/expenses/${transaction.id}/status`, { status: "PAID" });

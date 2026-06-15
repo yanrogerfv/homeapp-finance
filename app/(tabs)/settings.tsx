@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, TouchableOpacity, Alert, Switch, Image, Platform } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, Alert, Switch, Image, Platform, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/lib/auth-context";
@@ -7,7 +7,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useThemeContext } from "@/lib/theme-provider";
 import { SchemeColors } from "@/constants/theme";
-import { leaveHouse, removeHouseMember } from "@/lib/api";
+import { leaveHouse, removeHouseMember, updateHouseBalance } from "@/lib/api";
 import { apiClient } from "@/lib/apiClient";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -21,6 +21,8 @@ export default function SettingsScreen() {
     authState.user?.biometricEnabled || false
   );
   const [houseDetails, setHouseDetails] = useState<any>(null);
+  const [balanceModalVisible, setBalanceModalVisible] = useState(false);
+  const [balanceInput, setBalanceInput] = useState("");
 
   const fetchHouse = async () => {
     try {
@@ -65,9 +67,9 @@ export default function SettingsScreen() {
           Alert.alert("Sucesso", "Autenticação biométrica ativada");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Erro", "Falha na autenticação");
+      Alert.alert("Erro", error.message || "Falha na autenticação");
     }
   };
 
@@ -154,6 +156,68 @@ export default function SettingsScreen() {
           onPress: executeLogout,
         },
       ]);
+    }
+  };
+
+  const executeBalanceUpdate = async (rawValue: string) => {
+    const parsed = parseFloat(rawValue.replace(",", "."));
+    if (isNaN(parsed) || parsed === 0) {
+      Alert.alert("Erro", "Informe um valor válido diferente de zero.");
+      return;
+    }
+    try {
+      if (Platform.OS !== "web") {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      const valueToAdd = parsed > 0 ? parsed : 0;
+      const valueToSubtract = parsed < 0 ? Math.abs(parsed) : 0;
+      await updateHouseBalance(valueToAdd, valueToSubtract);
+      await fetchHouse();
+      if (Platform.OS === "web") {
+        window.alert("Saldo da casa atualizado com sucesso.");
+      } else {
+        Alert.alert("Sucesso", "Saldo da casa atualizado com sucesso.");
+      }
+    } catch (error: any) {
+      if (Platform.OS !== "web") {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      if (Platform.OS === "web") {
+        window.alert("Não foi possível atualizar o saldo.");
+      } else {
+        Alert.alert("Erro", error?.response?.data?.message || "Não foi possível atualizar o saldo.");
+      }
+    }
+  };
+
+  const handleAdjustBalance = () => {
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        "Ajustar Saldo",
+        "Insira o valor a adicionar (positivo) ou subtrair (negativo) do saldo da casa.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Confirmar",
+            onPress: (value) => {
+              if (value !== undefined) {
+                executeBalanceUpdate(value);
+              }
+            },
+          },
+        ],
+        "plain-text",
+        "",
+        "numeric"
+      );
+    } else if (Platform.OS === "web") {
+      const value = window.prompt("Insira o valor a adicionar (positivo) ou subtrair (negativo) do saldo da casa:");
+      if (value !== null && value.trim() !== "") {
+        executeBalanceUpdate(value);
+      }
+    } else {
+      setBalanceInput("");
+      setBalanceModalVisible(true);
     }
   };
 
@@ -280,6 +344,16 @@ export default function SettingsScreen() {
                   </View>
                 )}
 
+                {isOwner && (
+                  <SettingRow
+                    icon="account-balance-wallet"
+                    title="Ajustar Saldo da Casa"
+                    subtitle="Adicionar ou subtrair do saldo atual"
+                    onPress={handleAdjustBalance}
+                    rightElement={<MaterialIcons name="chevron-right" size={22} color={colors.muted} />}
+                  />
+                )}
+
                 <View className="mt-6">
                   <Text className="text-sm text-foreground font-bold mb-4 uppercase tracking-widest">
                     Membros da Casa ({members.length})
@@ -350,6 +424,45 @@ export default function SettingsScreen() {
 
         </View>
       </ScrollView>
+      <Modal
+        visible={balanceModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBalanceModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/60 justify-center px-6">
+          <View className="bg-surface border border-border rounded-2xl p-6">
+            <Text className="text-foreground font-bold text-lg mb-1">Ajustar Saldo da Casa</Text>
+            <Text className="text-muted text-sm mb-4">Insira o valor a adicionar (positivo) ou subtrair (negativo) do saldo da casa.</Text>
+            <TextInput
+              value={balanceInput}
+              onChangeText={setBalanceInput}
+              keyboardType="numeric"
+              placeholder="Ex: 100 ou -50"
+              placeholderTextColor={colors.muted}
+              className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-5"
+              autoFocus
+            />
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setBalanceModalVisible(false)}
+                className="flex-1 border border-border rounded-xl py-3 items-center"
+              >
+                <Text className="text-foreground font-bold">Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setBalanceModalVisible(false);
+                  executeBalanceUpdate(balanceInput);
+                }}
+                className="flex-1 bg-primary rounded-xl py-3 items-center"
+              >
+                <Text className="text-white font-bold">Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }
