@@ -8,7 +8,7 @@ import { apiClient } from "@/lib/apiClient";
 export default function HouseSetupScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
   const [inviteCode, setInviteCode] = useState("");
   const [houseName, setHouseName] = useState("");
 
@@ -21,9 +21,9 @@ export default function HouseSetupScreen() {
     setLoading(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
-      await apiClient.post('/house/join', { inviteCode });
-      
+
+      await apiClient.post(`/house/join?inviteCode=${inviteCode}`);
+
       router.replace("/(tabs)");
     } catch (error: any) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -42,9 +42,9 @@ export default function HouseSetupScreen() {
     setLoading(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       await apiClient.post('/house/create', { name: houseName });
-      
+
       router.replace("/(tabs)");
     } catch (error: any) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
